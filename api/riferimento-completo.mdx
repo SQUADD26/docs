@@ -33,11 +33,10 @@ Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/
 | `apiKey.id` | string (uuid) | sì |  |
 | `apiKey.name` | string | sì |  |
 | `apiKey.scopes` | array | sì |  |
-| `apiKey.voiceAgent` | boolean | sì | La chiave dell'agente vocale |
 | `rateLimit` | object | sì |  |
-| `rateLimit.limit` | integer | sì | Richieste al minuto |
-| `rateLimit.remaining` | integer | sì |  |
-| `rateLimit.resetAt` | string (date-time) | sì | Quando la finestra riparte |
+| `rateLimit.limit` | integer | sì | Il tetto della finestra più stretta dell'organizzazione, quella con meno richieste rimaste: 100 ogni 10 secondi o 20000 al giorno UTC |
+| `rateLimit.remaining` | integer | sì | Richieste rimaste in quella finestra |
+| `rateLimit.resetAt` | string (date-time) | sì | Quando quella finestra riparte |
 | `livemode` | boolean | sì | Falso per le chiavi dell'organizzazione di prova (gsk_test_) |
 | `venues` | array | sì |  |
 | `venues[].id` | string (uuid) | sì |  |
@@ -2235,7 +2234,7 @@ Tutte le risposte di errore hanno questo formato.
 | `error` | object | sì |  |
 | `error.code` | string | sì | Il codice su cui ramificare |
 | `error.message` | string | sì | Per chi legge i log |
-| `error.details` | object | sì | Cosa serve per correggere o riprovare: fields (i campi storti), requiredScope, reason; per no_availability anche alternatives, gli orari vicini nella forma di GET /availability |
+| `error.details` | object | sì | Cosa serve per correggere o riprovare: fields (i campi storti), requiredScope, reason; per no_availability anche alternatives, gli orari vicini nella forma di GET /availability; per rate_limited limit, window e scope della finestra che ha fermato la richiesta, e resetAt |
 | `error.details.fields` | array | no |  |
 | `error.details.requiredScope` | string | no |  |
 | `error.details.reason` | string | no |  |
@@ -2246,4 +2245,8 @@ Tutte le risposte di errore hanno questo formato.
 | `error.details.alternatives[].turnTimeMinutes` | integer | sì |  |
 | `error.details.alternatives[].seats` | integer | sì |  |
 | `error.details.alternatives[].overflowsShift` | boolean | sì |  |
+| `error.details.limit` | integer | no | rate_limited: il tetto della finestra che ha fermato la richiesta |
+| `error.details.window` | string: `10s`, `day`, `minute` | no | rate_limited: 10s o day (organizzazione), minute (visitatore del widget) |
+| `error.details.scope` | string: `organization`, `visitor` | no | rate_limited: di chi è il limite |
+| `error.details.resetAt` | string (date-time) | no | rate_limited: quando la finestra riparte |
 | `error.requestId` | string | no | Lo stesso valore dell'header X-Request-Id |

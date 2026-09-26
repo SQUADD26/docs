@@ -5,17 +5,21 @@ info:
   description: 'Autenticazione: Authorization: Bearer <chiave>. Errori: {error:{code,message,details,requestId}},
     anche per un percorso che non esiste (404 not_found); un metodo che il percorso non ha è un 405 della
     piattaforma, senza corpo. Risorsa singola: {nomeRisorsa: {...}}; lista d''attesa: entry. Elenchi:
-    {data,nextCursor}, limit fino a 200. Intervalli di giorni: from/to. serviceDate YYYY-MM-DD e time
+    {data,nextCursor}, limit fino a 50. Intervalli di giorni: from/to. serviceDate YYYY-MM-DD e time
     HH:mm nell''ora del locale; startsAt/endsAt/updatedAt ISO 8601 UTC; timezone IANA. Un id di percorso
-    storto è 404. Ogni risposta porta X-Request-Id; quelle con una chiave riconosciuta anche X-RateLimit-Limit/Remaining/Reset
-    (per la chiave pubblica del widget, il tetto del tuo indirizzo IP); il 429 anche Retry-After. Idempotency-Key:
-    legata a chiave API, operazione e corpo; riusata con un altro corpo è 422 idempotency_key_reused,
+    storto è 404. Limiti di frequenza: per organizzazione, sommando tutte le sue chiavi segrete, 100 richieste
+    ogni 10 secondi e 20000 al giorno (giorno di calendario UTC). Oltre: 429 rate_limited con details.window
+    (10s, day) e details.scope (organization), e la richiesta respinta non conta. Ogni risposta porta
+    X-Request-Id; quelle con una chiave riconosciuta anche X-RateLimit-Limit/Remaining/Reset della finestra
+    più stretta, quella con meno richieste rimaste (per la chiave pubblica del widget, il tetto del tuo
+    indirizzo IP); il 429 anche Retry-After, i secondi finché riparte la finestra che l''ha fermato.
+    Idempotency-Key: legata a chiave API, operazione e corpo; riusata con un altro corpo è 422 idempotency_key_reused,
     ancora in corso 409 idempotency_in_progress. Chiavi di prova (gsk_test_, organizzazione di prova):
     ogni risposta JSON porta livemode:false, nessun webhook, messaggio o sincronizzazione SQUADD parte.
     Chiave pubblica del widget (gspk_): solo GET /availability, /availability/slots, /availability/days
-    e POST /reservations, dai siti ammessi (CORS, header Origin), con un limite per indirizzo IP; senza
-    serviceTags né externalRef, e la prenotazione creata torna senza i dati dell''ospite. Altrove: 403
-    forbidden, details.reason publishable_key o origin_not_allowed.'
+    e POST /reservations, dai siti ammessi (CORS, header Origin), con un limite al minuto per indirizzo
+    IP e fuori dal limite dell''organizzazione; senza serviceTags né externalRef, e la prenotazione creata
+    torna senza i dati dell''ospite. Altrove: 403 forbidden, details.reason publishable_key o origin_not_allowed.'
 servers:
 - url: https://app.gestionesala.com/api/v1
 tags:
@@ -139,7 +143,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -275,7 +279,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -364,7 +368,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -453,7 +457,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -542,7 +546,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -631,7 +635,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -833,7 +837,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -922,7 +926,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -1005,7 +1009,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -1408,7 +1412,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -1994,7 +1998,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -2533,7 +2537,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -3270,7 +3274,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -3655,7 +3659,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -3835,7 +3839,7 @@ paths:
         schema:
           type: integer
           minimum: 1
-          maximum: 200
+          maximum: 50
           default: 50
       - name: cursor
         in: query
@@ -4583,7 +4587,8 @@ components:
             details:
               type: object
               description: 'Cosa serve per correggere o riprovare: fields (i campi storti), requiredScope,
-                reason; per no_availability anche alternatives, gli orari vicini nella forma di GET /availability'
+                reason; per no_availability anche alternatives, gli orari vicini nella forma di GET /availability;
+                per rate_limited limit, window e scope della finestra che ha fermato la richiesta, e resetAt'
               properties:
                 fields:
                   type: array
@@ -4597,6 +4602,26 @@ components:
                   type: array
                   items:
                     $ref: '#/components/schemas/Proposal'
+                limit:
+                  type: integer
+                  description: 'rate_limited: il tetto della finestra che ha fermato la richiesta'
+                window:
+                  type: string
+                  description: 'rate_limited: 10s o day (organizzazione), minute (visitatore del widget)'
+                  enum:
+                  - 10s
+                  - day
+                  - minute
+                scope:
+                  type: string
+                  description: 'rate_limited: di chi è il limite'
+                  enum:
+                  - organization
+                  - visitor
+                resetAt:
+                  type: string
+                  format: date-time
+                  description: 'rate_limited: quando la finestra riparte'
             requestId:
               type: string
               description: Lo stesso valore dell'header X-Request-Id
@@ -4647,25 +4672,23 @@ components:
                 - imports:write
                 - webhooks:read
                 - webhooks:write
-            voiceAgent:
-              type: boolean
-              description: La chiave dell'agente vocale
           required:
           - id
           - name
           - scopes
-          - voiceAgent
         rateLimit:
           type: object
           properties:
             limit:
               type: integer
-              description: Richieste al minuto
+              description: 'Il tetto della finestra più stretta dell''organizzazione, quella con meno
+                richieste rimaste: 100 ogni 10 secondi o 20000 al giorno UTC'
             remaining:
               type: integer
+              description: Richieste rimaste in quella finestra
             resetAt:
               type: string
-              description: Quando la finestra riparte
+              description: Quando quella finestra riparte
               format: date-time
           required:
           - limit
