@@ -1,0 +1,81 @@
+---
+title: "Dare queste docs a un'IA"
+sidebarTitle: "Panoramica"
+description: "llms.txt, pagine in Markdown, server MCP e specifica OpenAPI: tutto cio' che serve a un'IA o a un agente per lavorare con Gestione Sala."
+icon: "robot"
+---
+
+Questa documentazione e' fatta per essere letta anche dalle macchine. Scegli il formato in base allo strumento.
+
+| Cosa | Indirizzo | Quando usarlo |
+| --- | --- | --- |
+| Indice per IA | [`/llms.txt`](https://docs.gestionesala.com/llms.txt) | L'agente deve sapere quali pagine esistono e sceglierne alcune |
+| Tutte le pagine in un file | [`/llms-full.txt`](https://docs.gestionesala.com/llms-full.txt) | Vuoi incollare tutto il contesto in una volta |
+| Una pagina in Markdown | aggiungi `.md` all'indirizzo, es. [`/api/autenticazione.md`](https://docs.gestionesala.com/api/autenticazione.md) | Ti serve una pagina sola, pulita |
+| Specifica OpenAPI | [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml) | Generare un client, importare in Postman, far scrivere codice a un agente |
+| Server MCP | `https://docs.gestionesala.com/mcp` | L'assistente cerca nelle docs da solo, mentre lavora |
+
+## llms.txt e llms-full.txt
+
+`/llms.txt` e' l'indice di tutte le pagine, con titolo, descrizione e link alla versione Markdown. `/llms-full.txt` contiene il testo completo di tutte le pagine in un solo file. Si aggiornano da soli a ogni pubblicazione.
+
+```bash
+curl -s https://docs.gestionesala.com/llms.txt
+```
+
+## Pagine in Markdown
+
+Ogni pagina esiste anche in Markdown: basta aggiungere `.md` all'indirizzo. In alternativa, chiedi la pagina con l'header `Accept: text/markdown`:
+
+```bash
+curl -sL -H "Accept: text/markdown" https://docs.gestionesala.com/api/errori
+```
+
+## Menu della pagina
+
+In cima a ogni pagina c'e' un menu con:
+
+- **Copia pagina**: copia la pagina in Markdown, pronta da incollare in una chat.
+- **Visualizza come Markdown**.
+- **Apri in ChatGPT**, **Apri in Claude**, **Apri in Perplexity**: apre una conversazione con la pagina gia' come contesto.
+- **Copia l'indirizzo del server MCP** e **Copia il comando di installazione MCP**.
+- **Collega a Cursor** e **Collega a VS Code**: installano il server MCP in un clic.
+- **Scarica la specifica API**, sulle pagine del riferimento API.
+
+## Server MCP
+
+Il server MCP permette a Claude, Cursor, VS Code, ChatGPT e agli altri client MCP di **cercare e leggere** queste pagine mentre lavorano, senza incollare niente.
+
+```text
+https://docs.gestionesala.com/mcp
+```
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http gestionesala-docs https://docs.gestionesala.com/mcp
+    ```
+  </Tab>
+  <Tab title="Cursor / VS Code">
+    Usa **Collega a Cursor** o **Collega a VS Code** dal menu in cima a una pagina qualunque.
+  </Tab>
+  <Tab title="Altri client">
+    ```bash
+    npx add-mcp https://docs.gestionesala.com/mcp
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Il server MCP delle docs legge la documentazione, non i tuoi dati: non prenota e non vede il tuo locale. Per agire sui dati serve l'[API](/api/introduzione) con una chiave.
+</Note>
+
+## Specifica OpenAPI
+
+[`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml) (OpenAPI 3.1) descrive tutti gli endpoint, i parametri, le risposte e gli errori. Da li' puoi:
+
+- generare un client tipizzato (ad esempio con `openapi-generator` o `openapi-typescript`);
+- importarla in Postman, Insomnia, Bruno;
+- darla a un agente come definizione degli strumenti (tool) da chiamare.
+
+Per far integrare l'API a un agente passo per passo: [Prompt per agenti](/ia/prompt-agenti).

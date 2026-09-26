@@ -2,52 +2,109 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Gestione Sala",
+  "description": "Documentazione di Gestione Sala: guida all'app per ristoranti e API pubblica v1 per prenotazioni, disponibilita', ospiti e coda clienti.",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#191919",
+    "light": "#FFF3D6",
+    "dark": "#191919"
+  },
+  "fonts": {
+    "family": "Geist"
   },
   "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
   "logo": {
     "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "dark": "/logo/dark.svg",
+    "href": "https://gestionesala.com"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Accedi",
+      "href": "https://app.gestionesala.com"
+    }
+  },
+  "navigation": {
+    "languages": [
+      {
+        "language": "it",
+        "default": true,
+        "tabs": [
+          {
+            "tab": "Guida",
+            "icon": "book-open",
+            "groups": [
+              {
+                "group": "Per iniziare",
+                "pages": [
+                  "index",
+                  "guida/primi-passi",
+                  "guida/glossario"
+                ]
+              },
+              {
+                "group": "Sezioni dell'app",
+                "pages": [
+                  "guida/home",
+                  "guida/sala",
+                  "guida/prenotazioni",
+                  "guida/coda-clienti",
+                  "guida/contatti",
+                  "guida/automazioni",
+                  "guida/consuntivo",
+                  "guida/assistente-ia",
+                  "guida/impostazioni"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "API",
+            "icon": "code",
+            "groups": [
+              {
+                "group": "Per iniziare",
+                "pages": [
+                  "api/introduzione",
+                  "api/autenticazione",
+                  "api/errori",
+                  "api/idempotenza",
+                  "api/limiti"
+                ]
+              },
+              {
+                "group": "Riferimento",
+                "openapi": "openapi.yaml"
+              }
+            ]
+          },
+          {
+            "tab": "IA e agenti",
+            "icon": "robot",
+            "groups": [
+              {
+                "group": "IA e agenti",
+                "pages": [
+                  "ia/panoramica",
+                  "ia/prompt-agenti"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "api": {
+    "playground": {
+      "display": "interactive"
+    },
+    "examples": {
+      "languages": [
+        "curl",
+        "javascript",
+        "python"
+      ]
     }
   },
   "contextual": {
@@ -58,15 +115,18 @@
       "claude",
       "perplexity",
       "mcp",
+      "add-mcp",
       "cursor",
-      "vscode"
+      "vscode",
+      "download-spec"
     ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+  "seo": {
+    "metatags": {
+      "og:image": "/og-image.png"
     }
+  },
+  "search": {
+    "prompt": "Cerca nella documentazione..."
   }
 }

@@ -1,0 +1,67 @@
+---
+title: "Prompt per agenti"
+description: "Un prompt pronto da incollare in Claude, ChatGPT o Cursor per integrare l'API di Gestione Sala."
+icon: "terminal"
+---
+
+Copia il prompt, sostituisci le parti tra `<>` e incollalo nel tuo assistente (Claude, ChatGPT, Cursor, Claude Code...). Il prompt dice all'agente dove leggere, quali regole rispettare e cosa consegnare.
+
+```markdown Prompt
+Devi integrare l'API pubblica v1 di Gestione Sala (gestionale di sala per ristoranti) in <descrivi il tuo sistema: es. "un agente vocale che risponde al telefono del ristorante", "un sito di prenotazione in Next.js">.
+
+## Fonti (leggile prima di scrivere codice)
+- Specifica OpenAPI 3.1: https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml  (fonte di verita' per percorsi, campi e risposte)
+- Indice delle docs: https://docs.gestionesala.com/llms.txt
+- Docs complete in un file: https://docs.gestionesala.com/llms-full.txt
+- Ogni pagina esiste in Markdown aggiungendo .md all'URL, es. https://docs.gestionesala.com/api/errori.md
+Non inventare endpoint, campi o codici che non sono nella specifica.
+
+## Fatti chiave
+- Base URL: https://app.gestionesala.com/api/v1
+- Autenticazione: header `Authorization: Bearer gsk_...`. La chiave va letta da una variabile d'ambiente (GESTIONESALA_API_KEY), mai scritta nel codice.
+- La chiave agisce come un membro vero dell'organizzazione: vede solo i locali e i dati che quel membro vedrebbe nell'app.
+- venueId del locale: <incolla qui l'id del locale>
+- Date `YYYY-MM-DD`, orari `HH:MM` ora locale del locale; `startsAt`/`endsAt` sono ISO 8601 UTC.
+
+## Regole di comportamento
+1. Prima di prenotare chiama GET /availability. Se `available` e' false NON e' un errore: leggi `reason` e proponi le `alternatives`. Se non ce ne sono, offri POST /waitlist (coda clienti).
+2. Per riconoscere chi chiama usa GET /guests/lookup?phone=... Se `found` e' false e' un ospite nuovo: chiedi il nome e passalo come `guestName`.
+3. Su POST /reservations e POST /waitlist manda sempre `Idempotency-Key`: una chiave per ogni intenzione di creare (es. `<id-telefonata>-prenota`), la stessa a ogni ritentativo.
+   - 201 = creata; 200 = gia' creata prima con quella chiave (non e' un doppione).
+   - 409 `idempotency_in_progress` = ritenta fra poco con la stessa chiave.
+   - 422 `idempotency_key_reused` = bug tuo: chiave riusata per un'altra operazione.
+4. Gli errori hanno sempre la forma `{ "error": { "code", "message", "details" } }`. Ramifica su `code`, mai su `message`.
+   - 409 `no_availability`: usa `details.reason` e `details.alternatives`.
+   - 409 `conflict`: rileggi e ritenta.
+   - 401 `api_key_revoked`: non ritentare, segnala.
+   - 429 `rate_limited`: nessun header Retry-After; attendi con backoff esponenziale e ritenta.
+5. Il tavolo non si sceglie ne' si legge dall'API. `tableAssigned` dice solo se c'e'. Se `needsAttention` e' true la prenotazione e' valida ma la sala deve guardarla: non trattarla come errore.
+6. Per modificare usa PATCH /reservations/{id} (almeno uno tra serviceDate, time, partySize, notes). Per disdire usa DELETE /reservations/{id}: porta lo stato a `cancelled`.
+
+## Cosa consegnare
+- Un client tipizzato generato dalla specifica o scritto a mano, con una funzione per endpoint.
+- Gestione di tutti i `code` di errore della specifica.
+- Test che coprono: posto disponibile, posto non disponibile con alternative, ospite nuovo, ritentativo idempotente (200 dopo 201), 429.
+- Nessun segreto nel codice.
+```
+
+## Dare le docs come strumento, non come testo
+
+Se il tuo assistente supporta MCP, collega anche il server delle docs: l'agente cerchera' da solo le pagine che gli servono mentre lavora.
+
+```text
+https://docs.gestionesala.com/mcp
+```
+
+Istruzioni per ogni client: [Server MCP](/ia/panoramica#server-mcp).
+
+## Per un agente vocale
+
+Se l'integrazione e' un agente al telefono, aggiungi al prompt:
+
+```markdown
+- Parli con una persona al telefono: frasi brevi, una domanda per volta.
+- Conferma sempre data, ora e numero di persone prima di creare la prenotazione.
+- Non dire mai il numero del tavolo: non lo conosci e non e' affar tuo.
+- Se la risposta e' "no posto", proponi al massimo due alternative, poi la coda clienti.
+```

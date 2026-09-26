@@ -1,0 +1,30 @@
+---
+title: "Limiti"
+description: "Richieste al minuto per chiave e cosa fare quando si superano."
+icon: "gauge"
+---
+
+## Richieste al minuto
+
+Ogni chiave API ha un tetto di **richieste al minuto**, fissato quando la chiave viene creata. Il tetto vale per chiave, non per organizzazione: due chiavi hanno due tetti separati.
+
+Oltre il tetto l'API risponde:
+
+```json
+HTTP 429
+{ "error": { "code": "rate_limited", "message": "troppe richieste per questa chiave", "details": {} } }
+```
+
+L'API non manda header `Retry-After` ne' `X-RateLimit-*`. Quando ricevi `429`, aspetta qualche secondo e ritenta, allungando l'attesa a ogni nuovo `429`.
+
+<Tip>
+  Se ritenti una creazione dopo un `429`, usa la stessa [`Idempotency-Key`](/api/idempotenza): cosi' non rischi doppioni.
+</Tip>
+
+## Validazione dei campi
+
+- `time`, `earliestTime`, `latestTime`: formato `HH:MM`.
+- `serviceDate`: formato `YYYY-MM-DD`.
+- `partySize`: intero, almeno 1.
+- `phone`: qualunque formato; il server lo normalizza in E.164 (`+39...`).
+- `PATCH /reservations/{id}`: almeno un campo tra `serviceDate`, `time`, `partySize`, `notes`.

@@ -1,0 +1,43 @@
+---
+title: "Idempotenza"
+description: "Ritentare una creazione senza creare doppioni, con l'header Idempotency-Key."
+icon: "repeat"
+---
+
+Una chiamata puo' perdersi a meta': la rete cade, il timeout scatta, l'agente vocale ritenta. Per non creare due prenotazioni uguali, manda l'header `Idempotency-Key`.
+
+```http
+Idempotency-Key: chiamata-8f2a-prenota
+```
+
+## Dove vale
+
+Solo sui due endpoint che creano:
+
+- `POST /reservations`
+- `POST /waitlist`
+
+L'header e' **facoltativo**. Senza, ogni chiamata e' una chiamata nuova.
+
+## Cosa succede
+
+| Situazione | Risposta |
+| --- | --- |
+| Prima chiamata con quella chiave | `201`, risorsa creata |
+| Stessa chiave, stessa operazione, prima chiamata gia' conclusa | `200`, la risorsa creata allora. Nessun doppione |
+| Stessa chiave, prima chiamata ancora in corso | `409 idempotency_in_progress`: ritenta fra poco con la stessa chiave |
+| Stessa chiave usata per un'altra operazione | `422 idempotency_key_reused` |
+
+La chiave vale per **organizzazione**: due organizzazioni diverse possono usare la stessa stringa senza pestarsi i piedi.
+
+## Come sceglierla
+
+Una chiave per ogni **intenzione** di creare, non per ogni tentativo. Esempio per un agente vocale: l'id della telefonata piu' l'azione (`<id-chiamata>-prenota`). Se ritenti la stessa prenotazione, riusa la stessa chiave; se l'ospite chiede una seconda prenotazione, usane una nuova.
+
+```bash
+curl -s -X POST "https://app.gestionesala.com/api/v1/waitlist" \
+  -H "Authorization: Bearer $GS_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: chiamata-8f2a-coda" \
+  -d '{"venueId":"b1e2c3d4-0000-4000-8000-000000000001","serviceDate":"2026-09-26","partySize":2,"earliestTime":"20:00","latestTime":"21:30","phone":"+393391112233","guestName":"Mario Rossi"}'
+```

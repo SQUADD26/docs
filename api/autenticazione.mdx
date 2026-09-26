@@ -1,0 +1,57 @@
+---
+title: "Autenticazione"
+description: "Come si crea una chiave API nell'app, come si usa e come si revoca."
+icon: "key"
+---
+
+Ogni richiesta porta una chiave API nell'header `Authorization`:
+
+```http
+Authorization: Bearer gsk_0123456789abcdef...
+```
+
+Le chiavi hanno la forma `gsk_` seguita da 64 caratteri esadecimali. Non esistono altri header di autenticazione.
+
+## Creare una chiave
+
+<Steps>
+  <Step title="Apri Collegamenti">
+    Nell'app vai in **Impostazioni → Collegamenti**, sezione **Agente vocale**. Serve il permesso sui collegamenti.
+  </Step>
+  <Step title="Dai un nome alla chiave">
+    Un nome che dica chi la usa, ad esempio "Agente telefono sala".
+  </Step>
+  <Step title="Premi Crea una chiave">
+    La chiave compare a schermo **una sola volta**. Copiala subito e conservala in un posto sicuro.
+  </Step>
+</Steps>
+
+<Warning>
+  Il segreto non si puo' rivedere: nel database resta solo la sua impronta (SHA-256). Se lo perdi, crea una chiave nuova e revoca la vecchia.
+</Warning>
+
+## Cosa puo' fare una chiave
+
+La chiave identifica **un'organizzazione e un membro vero** di quell'organizzazione. Ogni chiamata vede e modifica solo cio' che quel membro vedrebbe e modificherebbe nell'app: stessi permessi, stessi locali. Un locale fuori dalla sua portata risponde `404`.
+
+## Revocare una chiave
+
+Dalla stessa pagina: menu azioni della chiave → **Revoca**. La revoca e' immediata: la chiamata successiva con quella chiave riceve `401 api_key_revoked`.
+
+## Errori di autenticazione
+
+| Status | `code` | Quando |
+| --- | --- | --- |
+| `401` | `unauthenticated` | Nessuna chiave nell'header |
+| `401` | `api_key_invalid` | Chiave sconosciuta o malformata |
+| `401` | `api_key_revoked` | Chiave revocata |
+
+```bash
+curl -i "https://app.gestionesala.com/api/v1/guests/lookup?phone=3391112233"
+# HTTP/1.1 401
+# {"error":{"code":"unauthenticated","message":"serve una chiave API","details":{}}}
+```
+
+<Tip>
+  Non mettere la chiave nel codice o in un repository. Passala come variabile d'ambiente al sistema che chiama l'API.
+</Tip>

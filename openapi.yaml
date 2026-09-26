@@ -1,0 +1,567 @@
+openapi: 3.1.0
+info:
+  title: Gestione Sala — API pubblica v1
+  version: "1.0.0"
+  description: >
+    API REST per l'agente vocale: disponibilita', anagrafica ospite dal
+    numero, prenotazioni, lista d'attesa. Ogni chiamata parla come un membro
+    dell'organizzazione: la chiave API autentica e la RLS di sempre decide
+    cosa si vede.
+servers:
+  - url: https://app.gestionesala.com/api/v1
+tags:
+  - name: Disponibilita
+    description: C'e' posto?
+  - name: Ospiti
+    description: Riconoscere chi chiama dal numero.
+  - name: Prenotazioni
+    description: Creare, modificare, disdire.
+  - name: Lista d'attesa
+    description: Parcheggiare chi non trova posto.
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /availability:
+    get:
+      tags: [Disponibilita]
+      summary: Chiede se c'e' posto
+      description: >
+        Il no non e' un errore: e' una risposta con le alternative piu'
+        vicine entro la finestra del turno.
+      operationId: getAvailability
+      parameters:
+        - name: venueId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+        - name: serviceDate
+          in: query
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-09-26"
+        - name: time
+          in: query
+          required: true
+          schema: { type: string, pattern: "^\\d{2}:\\d{2}$" }
+          example: "20:00"
+        - name: partySize
+          in: query
+          required: true
+          schema: { type: integer, minimum: 1 }
+          example: 4
+      responses:
+        "200":
+          description: Disponibile, o no con alternative.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/AvailabilityFound"
+                  - $ref: "#/components/schemas/AvailabilityRefused"
+              examples:
+                disponibile:
+                  value:
+                    venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+                    serviceDate: "2026-09-26"
+                    partySize: 4
+                    available: true
+                    time: "20:00"
+                    startsAt: "2026-09-26T18:00:00.000Z"
+                    endsAt: "2026-09-26T20:00:00.000Z"
+                    turnTimeMinutes: 120
+                    seats: 4
+                    overflowsShift: false
+                    alternatives: []
+                rifiutata:
+                  value:
+                    venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+                    serviceDate: "2026-09-26"
+                    partySize: 4
+                    available: false
+                    reason: "no_shift"
+                    alternatives:
+                      - time: "21:00"
+                        startsAt: "2026-09-26T19:00:00.000Z"
+                        endsAt: "2026-09-26T21:00:00.000Z"
+                        turnTimeMinutes: 120
+                        seats: 4
+                        overflowsShift: false
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /guests/lookup:
+    get:
+      tags: [Ospiti]
+      summary: Riconosce l'ospite dal numero
+      description: >
+        Non trovato non e' un errore: e' un ospite nuovo, l'agente deve
+        chiedergli il nome.
+      operationId: lookupGuest
+      parameters:
+        - name: phone
+          in: query
+          required: true
+          schema: { type: string }
+          description: "Qualunque formato: si normalizza in E.164 lato server."
+          example: "339 111 22 33"
+      responses:
+        "200":
+          description: Trovato o no.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/GuestFound"
+                  - $ref: "#/components/schemas/GuestNotFound"
+              examples:
+                trovato:
+                  value:
+                    found: true
+                    guest:
+                      id: "c1e2c3d4-0000-4000-8000-000000000002"
+                      phone: "+393391112233"
+                      name: "Mario Rossi"
+                      allergies: null
+                      notes: null
+                      visitCount: 3
+                      noShowCount: 0
+                nonTrovato:
+                  value: { found: false, phone: "+393391112233" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /reservations:
+    post:
+      tags: [Prenotazioni]
+      summary: Crea una prenotazione
+      operationId: createReservation
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReservationCreate" }
+            example:
+              venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+              serviceDate: "2026-09-26"
+              time: "20:00"
+              partySize: 4
+              phone: "339 111 22 33"
+              guestName: "Mario Rossi"
+              notes: "compleanno"
+      responses:
+        "201":
+          description: Creata adesso.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReservationEnvelope" }
+              example:
+                reservation:
+                  id: "d1e2c3d4-0000-4000-8000-000000000003"
+                  venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+                  serviceDate: "2026-09-26"
+                  time: "20:00"
+                  startsAt: "2026-09-26T18:00:00.000Z"
+                  endsAt: "2026-09-26T20:00:00.000Z"
+                  partySize: 4
+                  status: "confirmed"
+                  tableAssigned: true
+                  needsAttention: false
+                  notes: "compleanno"
+                  guest: { name: "Mario Rossi", allergies: null }
+        "200":
+          description: >
+            Stessa `Idempotency-Key` di una richiesta gia' conclusa: ritorna
+            la risorsa di allora, non ne crea una seconda.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReservationEnvelope" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/NoAvailabilityOrIdempotencyInProgress" }
+        "422": { $ref: "#/components/responses/IdempotencyKeyReused" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /reservations/{id}:
+    patch:
+      tags: [Prenotazioni]
+      summary: Modifica orario, data, coperti o note
+      description: >
+        Il tavolo non si sceglie da qui: e' una decisione della sala. Se
+        dopo la modifica nessun tavolo regge, la prenotazione resta
+        `needsAttention: true` invece di essere rifiutata.
+      operationId: updateReservation
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReservationPatch" }
+            example: { time: "21:00", partySize: 2 }
+      responses:
+        "200":
+          description: Aggiornata.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReservationEnvelope" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    delete:
+      tags: [Prenotazioni]
+      summary: Disdice (cancella lo stato, non la riga)
+      operationId: cancelReservation
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+      responses:
+        "200":
+          description: Prenotazione in stato `cancelled`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReservationEnvelope" }
+              example:
+                reservation:
+                  id: "d1e2c3d4-0000-4000-8000-000000000003"
+                  venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+                  serviceDate: "2026-09-26"
+                  time: "21:00"
+                  startsAt: "2026-09-26T19:00:00.000Z"
+                  endsAt: "2026-09-26T20:00:00.000Z"
+                  partySize: 2
+                  status: "cancelled"
+                  tableAssigned: true
+                  needsAttention: false
+                  notes: "compleanno"
+                  guest: { name: "Mario Rossi", allergies: null }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /waitlist:
+    post:
+      tags: [Lista d'attesa]
+      summary: Parcheggia un ospite senza posto
+      operationId: createWaitlistEntry
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WaitlistCreate" }
+            example:
+              venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+              serviceDate: "2026-09-26"
+              partySize: 2
+              earliestTime: "20:00"
+              latestTime: "21:30"
+              phone: "+393391112233"
+              guestName: "Mario Rossi"
+      responses:
+        "201":
+          description: Parcheggiato.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WaitlistEnvelope" }
+              example:
+                entry:
+                  id: "e1e2c3d4-0000-4000-8000-000000000004"
+                  venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+                  serviceDate: "2026-09-26"
+                  partySize: 2
+                  earliestTime: "20:00"
+                  latestTime: "21:30"
+                  status: "waiting"
+                  guest: { name: "Mario Rossi", phone: "+393391112233" }
+        "200":
+          description: Stessa `Idempotency-Key`, gia' concluso.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WaitlistEnvelope" }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/NoAvailabilityOrIdempotencyInProgress" }
+        "422": { $ref: "#/components/responses/IdempotencyKeyReused" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "gsk_<64 esadecimali>"
+      description: >
+        `Authorization: Bearer gsk_...`. La chiave identifica un'organizzazione
+        e un membro vero: da quel momento vale la RLS di sempre, non un
+        secondo controllo sui dati.
+
+  parameters:
+    ReservationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema: { type: string }
+      description: >
+        Facoltativa. Stessa chiave sulla stessa operazione: la seconda
+        chiamata ritrova la risorsa creata dalla prima (200) invece di
+        crearne un'altra (201). In corso -> 409 `idempotency_in_progress`.
+        Riusata su un'altra operazione -> 422 `idempotency_key_reused`.
+        Senza chiave, ogni chiamata e' una chiamata nuova.
+
+  schemas:
+    AvailabilityFound:
+      type: object
+      properties:
+        venueId: { type: string, format: uuid }
+        serviceDate: { type: string, format: date }
+        partySize: { type: integer }
+        available: { type: boolean, enum: [true] }
+        time: { type: string, description: "Ora locale del locale, HH:MM" }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        turnTimeMinutes: { type: integer }
+        seats: { type: integer }
+        overflowsShift: { type: boolean }
+        alternatives:
+          type: array
+          items: { $ref: "#/components/schemas/AvailabilitySlot" }
+      required: [venueId, serviceDate, partySize, available, time, startsAt, endsAt, seats, alternatives]
+
+    AvailabilitySlot:
+      type: object
+      properties:
+        time: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        turnTimeMinutes: { type: integer }
+        seats: { type: integer }
+        overflowsShift: { type: boolean }
+
+    AvailabilityRefused:
+      type: object
+      properties:
+        venueId: { type: string, format: uuid }
+        serviceDate: { type: string, format: date }
+        partySize: { type: integer }
+        available: { type: boolean, enum: [false] }
+        reason:
+          type: string
+          enum: [closed, no_shift, after_last_seating, no_turn_time_rule, no_table, pacing_full]
+          description: >
+            closed=chiusura, no_shift=nessun turno a quell'ora,
+            after_last_seating=ultimo ingresso passato,
+            no_turn_time_rule=nessuna regola di durata,
+            no_table=nessun tavolo libero della capienza giusta,
+            pacing_full=tetto coperti della fascia pieno.
+        alternatives:
+          type: array
+          items: { $ref: "#/components/schemas/AvailabilitySlot" }
+      required: [venueId, serviceDate, partySize, available, reason, alternatives]
+
+    GuestFound:
+      type: object
+      properties:
+        found: { type: boolean, enum: [true] }
+        guest:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            phone: { type: string }
+            name: { type: [string, "null"] }
+            allergies: { type: [string, "null"] }
+            notes: { type: [string, "null"] }
+            visitCount: { type: integer }
+            noShowCount: { type: integer }
+          required: [id, phone, name, allergies, notes, visitCount, noShowCount]
+      required: [found, guest]
+
+    GuestNotFound:
+      type: object
+      properties:
+        found: { type: boolean, enum: [false] }
+        phone: { type: string }
+      required: [found, phone]
+
+    ReservationCreate:
+      type: object
+      properties:
+        venueId: { type: string, format: uuid }
+        serviceDate: { type: string, format: date }
+        time: { type: string, pattern: "^\\d{2}:\\d{2}$" }
+        partySize: { type: integer, minimum: 1 }
+        phone:
+          type: string
+          description: Qualunque formato; assente = nessun ospite associato.
+        guestName: { type: string }
+        notes: { type: [string, "null"] }
+      required: [venueId, serviceDate, time, partySize]
+
+    ReservationPatch:
+      type: object
+      description: Almeno un campo. Il tavolo non e' modificabile da qui.
+      properties:
+        serviceDate: { type: string, format: date }
+        time: { type: string, pattern: "^\\d{2}:\\d{2}$" }
+        partySize: { type: integer, minimum: 1 }
+        notes: { type: [string, "null"] }
+      minProperties: 1
+
+    Reservation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        venueId: { type: string, format: uuid }
+        serviceDate: { type: string, format: date }
+        time: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        partySize: { type: integer }
+        status:
+          type: string
+          description: Stato della prenotazione (es. confirmed, cancelled).
+        tableAssigned:
+          type: boolean
+          description: Un tavolo o un'unione di tavoli e' assegnato. Quale, non si dice.
+        needsAttention:
+          type: boolean
+          description: "\"Da sistemare\": vale, ma qualcuno in sala deve guardarla."
+        notes: { type: [string, "null"] }
+        guest:
+          type: [object, "null"]
+          properties:
+            name: { type: [string, "null"] }
+            allergies: { type: [string, "null"] }
+      required: [id, venueId, serviceDate, time, startsAt, endsAt, partySize, status, tableAssigned, needsAttention, notes, guest]
+
+    ReservationEnvelope:
+      type: object
+      properties:
+        reservation: { $ref: "#/components/schemas/Reservation" }
+      required: [reservation]
+
+    WaitlistCreate:
+      type: object
+      properties:
+        venueId: { type: string, format: uuid }
+        serviceDate: { type: string, format: date }
+        partySize: { type: integer, minimum: 1 }
+        earliestTime: { type: string, pattern: "^\\d{2}:\\d{2}$" }
+        latestTime: { type: string, pattern: "^\\d{2}:\\d{2}$" }
+        phone: { type: string }
+        guestName: { type: string }
+      required: [venueId, serviceDate, partySize, earliestTime, latestTime, phone]
+
+    WaitlistEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        venueId: { type: string, format: uuid }
+        serviceDate: { type: string, format: date }
+        partySize: { type: integer }
+        earliestTime: { type: string }
+        latestTime: { type: string }
+        status: { type: string, description: "Es. waiting." }
+        guest:
+          type: [object, "null"]
+          properties:
+            name: { type: [string, "null"] }
+            phone: { type: string }
+      required: [id, venueId, serviceDate, partySize, earliestTime, latestTime, status, guest]
+
+    WaitlistEnvelope:
+      type: object
+      properties:
+        entry: { $ref: "#/components/schemas/WaitlistEntry" }
+      required: [entry]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_request
+                - unauthenticated
+                - api_key_invalid
+                - api_key_revoked
+                - forbidden
+                - not_found
+                - no_availability
+                - conflict
+                - idempotency_in_progress
+                - idempotency_key_reused
+                - rate_limited
+                - internal_error
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+          required: [code, message, details]
+      required: [error]
+
+  responses:
+    InvalidRequest:
+      description: Parametri mancanti o malformati (400).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "invalid_request", message: "servono venueId, serviceDate, time e partySize", details: { fields: ["venueId", "serviceDate", "time", "partySize"] } } }
+    Unauthenticated:
+      description: Nessuna chiave, chiave sconosciuta o revocata (401).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            senzaChiave: { value: { error: { code: "unauthenticated", message: "serve una chiave API", details: {} } } }
+            chiaveInvalida: { value: { error: { code: "api_key_invalid", message: "chiave API non valida", details: {} } } }
+            chiaveRevocata: { value: { error: { code: "api_key_revoked", message: "chiave API revocata", details: {} } } }
+    NotFound:
+      description: Locale, prenotazione o parcheggiato inesistenti o non accessibili (404).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "not_found", message: "prenotazione inesistente o non accessibile", details: {} } }
+    NoAvailabilityOrIdempotencyInProgress:
+      description: >
+        409 — o non c'e' posto (`no_availability`, con `reason` e
+        `alternatives`), o e' un conflitto sulla riga (`conflict`), o la
+        stessa `Idempotency-Key` e' ancora in corso (`idempotency_in_progress`).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            noAvailability: { value: { error: { code: "no_availability", message: "nessun tavolo disponibile", details: { reason: "no_table", alternatives: [] } } } }
+            inCorso: { value: { error: { code: "idempotency_in_progress", message: "una richiesta con questa chiave e' ancora in corso: ritenta fra poco", details: {} } } }
+    Conflict:
+      description: "La prenotazione e' cambiata o e' in uso: rileggi e ritenta (409)."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    IdempotencyKeyReused:
+      description: Stessa chiave di idempotenza usata su un'altra operazione (422).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "idempotency_key_reused", message: "questa chiave di idempotenza e' gia' stata usata per un'altra operazione", details: { operation: "POST /api/v1/reservations" } } }
+    RateLimited:
+      description: Troppe richieste al minuto per questa chiave (429).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "rate_limited", message: "troppe richieste per questa chiave", details: {} } }

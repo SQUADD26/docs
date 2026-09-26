@@ -1,0 +1,78 @@
+---
+title: "Introduzione all'API"
+sidebarTitle: "Introduzione"
+description: "API REST v1 di Gestione Sala: disponibilita', ospiti, prenotazioni, coda clienti."
+icon: "code"
+---
+
+L'API pubblica v1 serve a un sistema esterno, tipicamente un **agente vocale** che risponde al telefono del locale, per:
+
+- chiedere se c'e' posto e ricevere le alternative piu' vicine;
+- riconoscere l'ospite dal numero di telefono;
+- creare, modificare e disdire prenotazioni;
+- mettere in coda clienti chi non trova posto.
+
+## Base URL
+
+```text
+https://app.gestionesala.com/api/v1
+```
+
+Richieste e risposte sono JSON. Date in formato `YYYY-MM-DD`, orari in `HH:MM` (ora locale del locale), istanti in ISO 8601 UTC (`startsAt`, `endsAt`).
+
+## Endpoint
+
+| Metodo | Percorso | A cosa serve |
+| --- | --- | --- |
+| `GET` | `/availability` | C'e' posto a quell'ora per quei coperti? |
+| `GET` | `/guests/lookup` | Chi e' l'ospite con questo numero? |
+| `POST` | `/reservations` | Crea una prenotazione |
+| `PATCH` | `/reservations/{id}` | Cambia data, orario, coperti o note |
+| `DELETE` | `/reservations/{id}` | Disdice una prenotazione |
+| `POST` | `/waitlist` | Mette un ospite in coda clienti |
+
+Il dettaglio di ogni endpoint, con playground, e' nel gruppo **Riferimento** qui a lato. La specifica completa e' scaricabile: [openapi.yaml](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml).
+
+## Come ragiona l'API
+
+- **Ogni chiamata parla come un membro vero dell'organizzazione.** La chiave API identifica un'organizzazione e una persona; da quel momento valgono gli stessi permessi dell'app. Niente scorciatoie sui dati.
+- **"No" non e' un errore.** Se non c'e' posto, `/availability` risponde `200` con `available: false`, il motivo e le alternative. Se il numero non e' in rubrica, `/guests/lookup` risponde `200` con `found: false`.
+- **Il tavolo lo decide la sala.** L'API non sceglie ne' rivela il tavolo: dice solo se e' assegnato (`tableAssigned`). Se dopo una modifica nessun tavolo regge, la prenotazione resta valida con `needsAttention: true`.
+- **Disdire non cancella.** `DELETE` porta la prenotazione in stato `cancelled`; la riga resta.
+
+## Primo giro in tre chiamate
+
+```bash
+export GS_KEY="gsk_..."
+export VENUE="b1e2c3d4-0000-4000-8000-000000000001"
+
+# 1. C'e' posto?
+curl -s "https://app.gestionesala.com/api/v1/availability?venueId=$VENUE&serviceDate=2026-09-26&time=20:00&partySize=4" \
+  -H "Authorization: Bearer $GS_KEY"
+
+# 2. Chi chiama?
+curl -s "https://app.gestionesala.com/api/v1/guests/lookup?phone=3391112233" \
+  -H "Authorization: Bearer $GS_KEY"
+
+# 3. Prenota
+curl -s -X POST "https://app.gestionesala.com/api/v1/reservations" \
+  -H "Authorization: Bearer $GS_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: chiamata-8f2a-prenota" \
+  -d '{"venueId":"'"$VENUE"'","serviceDate":"2026-09-26","time":"20:00","partySize":4,"phone":"339 111 22 33","guestName":"Mario Rossi"}'
+```
+
+<CardGroup cols={2}>
+  <Card title="Autenticazione" icon="key" href="/api/autenticazione">
+    Creare, usare e revocare una chiave.
+  </Card>
+  <Card title="Errori" icon="triangle-exclamation" href="/api/errori">
+    Un solo formato, codici chiusi.
+  </Card>
+  <Card title="Idempotenza" icon="repeat" href="/api/idempotenza">
+    Ritentare senza doppioni.
+  </Card>
+  <Card title="Limiti" icon="gauge" href="/api/limiti">
+    Richieste al minuto per chiave.
+  </Card>
+</CardGroup>

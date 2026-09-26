@@ -1,55 +1,40 @@
-# Mintlify Starter Kit
+# Documentazione di Gestione Sala
 
-Use the starter kit to get your docs deployed and ready to customize.
+Sorgenti di [docs.gestionesala.com](https://docs.gestionesala.com), costruito con [Mintlify](https://mintlify.com).
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## Cosa c'e'
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+| Percorso | Contenuto |
+| --- | --- |
+| `docs.json` | Configurazione: navigazione, colori, logo, menu contestuale |
+| `index.mdx`, `guida/` | Guida all'app, una pagina per sezione |
+| `api/` | Introduzione all'API, autenticazione, errori, idempotenza, limiti |
+| `openapi.yaml` | Specifica OpenAPI 3.1 dell'API pubblica v1: genera il riferimento API |
+| `ia/` | llms.txt, Markdown, server MCP, prompt per agenti |
+| `logo/`, `favicon.svg`, `og-image.png` | Marchio, copiato dall'app |
+| `AGENTS.md` | Regole per chi scrive (persone e agenti) |
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
+## Anteprima locale
 
 ```bash
-npx skills add https://mintlify.com/docs
+npm i -g mint   # una volta
+mint dev        # http://localhost:3000
 ```
 
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
+## Controlli
 
-See the [AI tools guides](/ai-tools) for tool-specific setup.
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
-npm i -g mint
+```bash
+mint validate
+mint broken-links
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+## Aggiornare l'API
 
-```
-mint dev
-```
+1. Modifica `openapi.yaml` quando cambia l'API in `gestionesala-ai` (`src/app/api/v1/`, `src/lib/api-v1/`).
+2. Controlla la specifica: `mint validate`.
+3. Se cambiano autenticazione, errori, idempotenza o limiti, aggiorna anche le pagine in `api/`.
+4. Le pagine del riferimento si rigenerano da sole: non vanno scritte a mano.
 
-View your local preview at `http://localhost:3000`.
+## Pubblicazione
 
-## Publishing changes
-
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
-
-## Need help?
-
-### Troubleshooting
-
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
-
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+Ogni push su `main` pubblica il sito tramite l'app GitHub di Mintlify.
