@@ -22,7 +22,7 @@ Gli endpoint che restituiscono un elenco usano la paginazione a cursore. La risp
 
 | Parametro | Tipo | Descrizione |
 | --- | --- | --- |
-| `limit` | integer | Elementi per pagina, da `1` a `200`. Predefinito `50` |
+| `limit` | integer | Elementi per pagina, da `1` a `50`. Predefinito `50` |
 | `cursor` | string | Il `nextCursor` di una risposta precedente, passato senza modifiche |
 
 Un `limit` fuori intervallo o un `cursor` non riconosciuto restituiscono `400 invalid_request` con `details.fields`.
@@ -34,7 +34,7 @@ Il cursore è opaco: il suo contenuto non fa parte del contratto. Usa un cursore
 ```bash
 cursor=""
 while :; do
-  page=$(curl -s "https://app.gestionesala.com/api/v1/reservations?limit=200&cursor=$cursor" \
+  page=$(curl -s "https://app.gestionesala.com/api/v1/reservations?limit=50&cursor=$cursor" \
     -H "Authorization: Bearer $GS_KEY")
   echo "$page" | jq -c '.data[]'
   cursor=$(echo "$page" | jq -r '.nextCursor // empty')

@@ -1,28 +1,32 @@
 ---
 title: "Limiti di richiesta"
 sidebarTitle: "Limiti di richiesta"
-description: "Limite di richieste al minuto, header X-RateLimit-* e Retry-After, gestione della risposta 429."
+description: "Limite di richieste per organizzazione, header X-RateLimit-* e Retry-After, gestione della risposta 429."
 icon: "gauge"
 ---
 
-## Richieste al minuto
+## Limite per organizzazione
 
-| Chiave | Limite | Ambito |
+Le chiavi segrete (`gsk_`, `gsk_test_`) condividono un limite unico per organizzazione, sommato su tutte le sue chiavi segrete:
+
+| Finestra | Limite | Riparte |
 | --- | --- | --- |
-| Segreta (`gsk_`, `gsk_test_`) | Fissato alla creazione, predefinito 120, massimo 20000 | Per chiave |
-| Pubblica del widget (`gspk_`, `gspk_test_`) | Fissato alla creazione, predefinito 20 | Per indirizzo IP del visitatore; per IPv6, per `/64` |
+| 10 secondi | 100 richieste | Dall'istante della prima richiesta della finestra |
+| Giorno | 20000 richieste | A mezzanotte UTC |
 
-La finestra dura un minuto e riparte all'istante indicato da `X-RateLimit-Reset`. Il limite di una chiave segreta è indipendente da quello delle altre chiavi della stessa organizzazione. Il limite della chiave pubblica non è condiviso fra visitatori: il traffico di un indirizzo non consuma quello degli altri.
+Non esiste più un limite per singola chiave. Una richiesta respinta con `429` non consuma la finestra.
+
+La chiave pubblica del widget (`gspk_`, `gspk_test_`) non entra in questo conteggio: ha un limite al minuto per indirizzo IP del visitatore (per IPv6, per `/64`), indipendente da quello dell'organizzazione.
 
 ## Header
 
-Ogni risposta a una richiesta con una chiave riconosciuta, errori compresi, porta questi header:
+Ogni risposta a una richiesta con una chiave riconosciuta, errori compresi, porta questi header, riferiti alla finestra più stretta al momento della richiesta (quella con meno richieste rimaste; a parità, il giorno, che riparte più tardi):
 
 | Header | Valore |
 | --- | --- |
-| `X-RateLimit-Limit` | Richieste concesse nella finestra. Per la chiave pubblica, il limite dell'indirizzo IP |
-| `X-RateLimit-Remaining` | Richieste rimaste nella finestra corrente |
-| `X-RateLimit-Reset` | Istante in cui la finestra riparte, in secondi Unix |
+| `X-RateLimit-Limit` | Tetto della finestra più stretta. Per la chiave pubblica, il limite dell'indirizzo IP |
+| `X-RateLimit-Remaining` | Richieste rimaste in quella finestra |
+| `X-RateLimit-Reset` | Istante in cui quella finestra riparte, in secondi Unix |
 | `Retry-After` | Solo sul `429`: secondi da attendere prima di ripetere, almeno `1` |
 
 Una richiesta senza chiave o con una chiave sconosciuta non riceve gli header `X-RateLimit-*`. Ogni risposta porta invece `X-Request-Id`.
@@ -30,29 +34,34 @@ Una richiesta senza chiave o con una chiave sconosciuta non riceve gli header `X
 ```http
 HTTP/1.1 200 OK
 X-Request-Id: 6f1c2a0e-4b8d-4c6e-9a51-2f3b7d8e9a10
-X-RateLimit-Limit: 120
-X-RateLimit-Remaining: 117
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 97
 X-RateLimit-Reset: 1790000060
 ```
 
 ## Risposta 429
 
-Oltre il limite, l'API risponde `429 rate_limited`. `details.limit` riporta il limite, `details.resetAt` l'istante di ripartenza in ISO 8601.
+Oltre il limite, l'API risponde `429 rate_limited`. `details.limit` riporta il tetto della finestra che ha fermato la richiesta, `details.window` quale finestra (`10s` o `day` per l'organizzazione, `minute` per il visitatore del widget), `details.scope` di chi è il limite (`organization` o `visitor`), `details.resetAt` l'istante di ripartenza in ISO 8601.
 
 ```http
 HTTP/1.1 429 Too Many Requests
-Retry-After: 23
-X-RateLimit-Limit: 120
+Retry-After: 7
+X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 0
-X-RateLimit-Reset: 1790000060
+X-RateLimit-Reset: 1790000007
 ```
 
 ```json
 {
   "error": {
     "code": "rate_limited",
-    "message": "troppe richieste per questa chiave",
-    "details": { "limit": 120, "resetAt": "2026-09-21T14:14:20.000Z" },
+    "message": "limite di frequenza superato: 100 richieste ogni 10 secondi per l'organizzazione",
+    "details": {
+      "limit": 100,
+      "window": "10s",
+      "scope": "organization",
+      "resetAt": "2026-09-21T14:14:07.000Z"
+    },
     "requestId": "6f1c2a0e-4b8d-4c6e-9a51-2f3b7d8e9a10"
   }
 }
@@ -73,6 +82,6 @@ Attendi i secondi indicati da `Retry-After`, poi ripeti la richiesta. Per distri
 | `startsAt`, `endsAt`, `updatedAt`, `updatedSince`, `since` | ISO 8601 con fuso |
 | `partySize` | Intero maggiore di zero |
 | `phone` | Qualsiasi formato normalizzabile in E.164 |
-| `limit` | Da `1` a `200`, predefinito `50`. Vedi [Paginazione](/api/paginazione) |
+| `limit` | Da `1` a `50`, predefinito `50`. Vedi [Paginazione](/api/paginazione) |
 
 Un campo non valido restituisce `400 invalid_request` con i nomi dei campi in `details.fields`.
