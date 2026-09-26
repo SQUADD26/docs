@@ -3,51 +3,50 @@ info:
   title: Gestione Sala API
   version: 1.0.0
   description: 'Autenticazione: Authorization: Bearer <chiave>. Errori: {error:{code,message,details,requestId}},
-    anche per un percorso che non esiste (404 not_found); un metodo che il percorso non ha e'' un 405
-    della piattaforma, senza corpo. Risorsa singola: {nomeRisorsa: {...}}; lista d''attesa: entry. Elenchi:
+    anche per un percorso che non esiste (404 not_found); un metodo che il percorso non ha è un 405 della
+    piattaforma, senza corpo. Risorsa singola: {nomeRisorsa: {...}}; lista d''attesa: entry. Elenchi:
     {data,nextCursor}, limit fino a 200. Intervalli di giorni: from/to. serviceDate YYYY-MM-DD e time
     HH:mm nell''ora del locale; startsAt/endsAt/updatedAt ISO 8601 UTC; timezone IANA. Un id di percorso
-    storto e'' 404. Ogni risposta porta X-Request-Id; quelle con una chiave riconosciuta anche X-RateLimit-Limit/Remaining/Reset
+    storto è 404. Ogni risposta porta X-Request-Id; quelle con una chiave riconosciuta anche X-RateLimit-Limit/Remaining/Reset
     (per la chiave pubblica del widget, il tetto del tuo indirizzo IP); il 429 anche Retry-After. Idempotency-Key:
-    legata a chiave API, operazione e corpo; riusata con un altro corpo e'' 422 idempotency_key_reused,
+    legata a chiave API, operazione e corpo; riusata con un altro corpo è 422 idempotency_key_reused,
     ancora in corso 409 idempotency_in_progress. Chiavi di prova (gsk_test_, organizzazione di prova):
     ogni risposta JSON porta livemode:false, nessun webhook, messaggio o sincronizzazione SQUADD parte.
     Chiave pubblica del widget (gspk_): solo GET /availability, /availability/slots, /availability/days
     e POST /reservations, dai siti ammessi (CORS, header Origin), con un limite per indirizzo IP; senza
-    serviceTags ne'' externalRef, e la prenotazione creata torna senza i dati dell''ospite. Altrove: 403
+    serviceTags né externalRef, e la prenotazione creata torna senza i dati dell''ospite. Altrove: 403
     forbidden, details.reason publishable_key o origin_not_allowed.'
 servers:
 - url: https://app.gestionesala.com/api/v1
 tags:
 - name: Meta
-  description: Chi sei, cosa puoi fare, il servizio risponde
+  description: Identità della chiave, stato del servizio e specifica OpenAPI
 - name: Locali
-  description: 'I locali che la chiave vede: da qui il venueId'
+  description: Locali accessibili alla chiave e relativo `venueId`
 - name: Configurazione del locale
-  description: Turni, chiusure, sale, tavoli, piante, regole e la sala di adesso
-- name: Disponibilita'
-  description: C'e' posto? E se no, cosa proporre
+  description: Turni, chiusure, sale, tavoli, piante, regole e stato della sala
+- name: Disponibilità
+  description: Disponibilità per orario, per giorno e su un intervallo di giorni
 - name: Prenotazioni
-  description: Leggere, creare, confermare, spostare, disdire
+  description: Lettura, creazione, modifica e annullamento delle prenotazioni
 - name: Lista d'attesa
-  description: Chi non trova posto aspetta e viene richiamato
+  description: Voci in attesa di un posto, richiamo e conversione in prenotazione
 - name: Ospiti
-  description: Riconoscere chi chiama, sincronizzare la rubrica
+  description: Rubrica degli ospiti, ricerca per telefono e tag di servizio
 - name: Eventi e report
-  description: Lo storico dei fatti, i consuntivi, l'export delle prenotazioni
+  description: Storico degli eventi, consuntivi ed export delle prenotazioni
 - name: Webhook
-  description: 'Com''e'' andata ogni consegna, rispedire, provare una destinazione, ruotare il segreto.
-    Firma: X-Gestionesala-Signature = v1=HMAC-SHA256(segreto, "v1\n<timestamp>\n<idempotency-key>\n<corpo>"),
-    con X-Gestionesala-Timestamp e X-Gestionesala-Idempotency-Key; in una rotazione due firme separate
-    da virgola.'
+  description: 'Consegne, reinvio, evento di prova e rotazione del segreto di firma. Firma: X-Gestionesala-Signature
+    = v1=HMAC-SHA256(segreto, "v1\n<timestamp>\n<idempotency-key>\n<corpo>"), con X-Gestionesala-Timestamp
+    e X-Gestionesala-Idempotency-Key; in una rotazione due firme separate da virgola.'
 - name: Import
-  description: Portare ospiti e prenotazioni da un altro gestionale
+  description: Import di ospiti e prenotazioni da un altro gestionale
 paths:
   /me:
     get:
       tags:
       - Meta
-      summary: La chiave che sta chiamando
+      summary: Recupera la chiave API corrente
       security:
       - apiKey: []
       operationId: getMe
@@ -80,7 +79,8 @@ paths:
     get:
       tags:
       - Meta
-      summary: Il servizio e il database rispondono
+      summary: Verifica lo stato del servizio
+      description: Verifica che il servizio e il database rispondano. Non richiede autenticazione.
       operationId: getHealth
       security: []
       responses:
@@ -112,7 +112,8 @@ paths:
     get:
       tags:
       - Meta
-      summary: Questa specifica
+      summary: Recupera la specifica OpenAPI
+      description: Restituisce la specifica OpenAPI 3.1 di questa API. Non richiede autenticazione.
       operationId: getOpenApi
       security: []
       responses:
@@ -124,7 +125,7 @@ paths:
     get:
       tags:
       - Locali
-      summary: I locali della chiave
+      summary: Elenca i locali accessibili alla chiave
       security:
       - apiKey: []
       x-required-scope: venues:read
@@ -149,7 +150,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -201,7 +202,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Un locale
+      summary: Recupera un locale
       security:
       - apiKey: []
       x-required-scope: venues:read
@@ -254,7 +255,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: I turni del locale
+      summary: Elenca i turni di un locale
       security:
       - apiKey: []
       x-required-scope: venues:read
@@ -285,7 +286,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -343,7 +344,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Le chiusure del locale
+      summary: Elenca le chiusure di un locale
       security:
       - apiKey: []
       x-required-scope: venues:read
@@ -374,7 +375,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -432,7 +433,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Le sale del locale
+      summary: Elenca le sale di un locale
       security:
       - apiKey: []
       x-required-scope: floor:read
@@ -463,7 +464,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -521,7 +522,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: I tavoli della pianta attiva
+      summary: Elenca i tavoli della pianta attiva
       security:
       - apiKey: []
       x-required-scope: floor:read
@@ -552,7 +553,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -610,7 +611,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Le piante del locale
+      summary: Elenca le piante di un locale
       security:
       - apiKey: []
       x-required-scope: floor:read
@@ -641,7 +642,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -699,7 +700,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Una pianta intera
+      summary: Recupera una pianta
       security:
       - apiKey: []
       x-required-scope: floor:read
@@ -758,7 +759,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: La sala adesso
+      summary: Recupera lo stato della sala
       security:
       - apiKey: []
       x-required-scope: floor:read
@@ -812,7 +813,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Quanto resta seduto un tavolo, per coperti
+      summary: Elenca le regole di durata del tavolo
       security:
       - apiKey: []
       x-required-scope: venues:read
@@ -843,7 +844,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -901,7 +902,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Il ritmo degli arrivi
+      summary: Elenca le regole di ritmo degli arrivi
       security:
       - apiKey: []
       x-required-scope: venues:read
@@ -932,7 +933,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -990,7 +991,7 @@ paths:
     get:
       tags:
       - Configurazione del locale
-      summary: Il catalogo dei tag di servizio
+      summary: Elenca i tag di servizio
       security:
       - apiKey: []
       x-required-scope: guests:read
@@ -1015,7 +1016,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -1066,8 +1067,8 @@ paths:
   /availability:
     get:
       tags:
-      - Disponibilita'
-      summary: C'e' posto a quell'ora per quei coperti
+      - Disponibilità
+      summary: Verifica la disponibilità
       security:
       - apiKey: []
       x-required-scope: reservations:read
@@ -1125,7 +1126,7 @@ paths:
                     type: boolean
                   reason:
                     type: string
-                    description: Perche' no, se non c'e' posto
+                    description: Perché no, se non c'è posto
                   alternatives:
                     type: array
                     items:
@@ -1171,13 +1172,13 @@ paths:
   /availability/slots:
     get:
       tags:
-      - Disponibilita'
-      summary: Tutti gli orari prenotabili del giorno
+      - Disponibilità
+      summary: Elenca gli orari disponibili
       security:
       - apiKey: []
       x-required-scope: reservations:read
       description: 'Scope: `reservations:read`. Ogni orario, a passi di 15 minuti dall''apertura del turno,
-        e'' uno in cui una prenotazione passerebbe adesso.'
+        è un orario in cui una prenotazione verrebbe accettata in questo momento.'
       operationId: listAvailabilitySlots
       parameters:
       - name: venueId
@@ -1269,12 +1270,12 @@ paths:
   /availability/days:
     get:
       tags:
-      - Disponibilita'
-      summary: Quali giorni hanno posto in un intervallo
+      - Disponibilità
+      summary: Elenca i giorni disponibili
       security:
       - apiKey: []
       x-required-scope: reservations:read
-      description: 'Scope: `reservations:read`. Al massimo 62 giorni, estremi compresi.'
+      description: 'Scope: `reservations:read`. Intervallo di al massimo 62 giorni, estremi inclusi.'
       operationId: listAvailabilityDays
       parameters:
       - name: venueId
@@ -1393,7 +1394,7 @@ paths:
     get:
       tags:
       - Prenotazioni
-      summary: Le prenotazioni, a pagine col cursore
+      summary: Elenca le prenotazioni
       security:
       - apiKey: []
       x-required-scope: reservations:read
@@ -1449,7 +1450,7 @@ paths:
       - name: status
         in: query
         required: false
-        description: Uno o piu' stati
+        description: Uno o più stati
         schema:
           type: array
           items:
@@ -1489,7 +1490,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -1602,17 +1603,17 @@ paths:
                   maxLength: 200
                 email:
                   type: string
-                  description: Solo con phone; riempie l'ospite se non l'ha gia'
+                  description: Solo con phone; riempie l'ospite se non l'ha già
                   format: email
                   maxLength: 254
                 firstName:
                   type: string
-                  description: Solo con phone; riempie l'ospite se non l'ha gia'
+                  description: Solo con phone; riempie l'ospite se non l'ha già
                   minLength: 1
                   maxLength: 100
                 lastName:
                   type: string
-                  description: Solo con phone; riempie l'ospite se non l'ha gia'
+                  description: Solo con phone; riempie l'ospite se non l'ha già
                   minLength: 1
                   maxLength: 100
                 serviceTags:
@@ -1623,8 +1624,8 @@ paths:
                     description: Nome di un tag del catalogo
                     minLength: 1
                     maxLength: 100
-                  description: 'Solo con phone: si aggiungono all''ospite; un nome fuori catalogo e''
-                    un 400'
+                  description: 'Solo con phone: si aggiungono all''ospite; un nome fuori catalogo è un
+                    400'
                 notes:
                   type: string
                 channel:
@@ -1642,7 +1643,7 @@ paths:
               - partySize
       responses:
         '200':
-          description: Gia' creata con la stessa Idempotency-Key
+          description: Già creata con la stessa Idempotency-Key
           content:
             application/json:
               schema:
@@ -1713,7 +1714,7 @@ paths:
     get:
       tags:
       - Prenotazioni
-      summary: Una prenotazione
+      summary: Recupera una prenotazione
       security:
       - apiKey: []
       x-required-scope: reservations:read
@@ -1784,12 +1785,13 @@ paths:
     patch:
       tags:
       - Prenotazioni
-      summary: Conferma, sposta, cambia stato, tavolo o ospite
+      summary: Aggiorna una prenotazione
       security:
       - apiKey: []
       x-required-scope: reservations:write
-      description: 'Scope: `reservations:write`. Gli stati della sala (arrived, seated, released, completed,
-        no_show) e tableId/tableCombinationId chiedono anche `floor:write`. Si disdice con DELETE.'
+      description: 'Scope: `reservations:write`. Conferma, sposta o cambia stato, tavolo o ospite. Gli
+        stati della sala (arrived, seated, released, completed, no_show) e tableId/tableCombinationId
+        chiedono anche `floor:write`. Per annullare si usa DELETE.'
       operationId: updateReservation
       parameters:
       - name: id
@@ -1917,12 +1919,13 @@ paths:
     delete:
       tags:
       - Prenotazioni
-      summary: 'Disdice: la prenotazione diventa cancelled'
+      summary: Annulla una prenotazione
       security:
       - apiKey: []
       x-required-scope: reservations:write
-      description: 'Scope: `reservations:write`. Gia'' cancelled: 200 con la prenotazione, nessun effetto.
-        Da uno stato che non si disdice (seated, released, completed, no_show): 409 conflict con details.allowedTransitions.'
+      description: 'Scope: `reservations:write`. Porta la prenotazione allo stato `cancelled`. Se è già
+        `cancelled`, risponde 200 senza effetti. Dagli stati seated, released, completed e no_show risponde
+        409 conflict con details.allowedTransitions.'
       operationId: cancelReservation
       parameters:
       - name: id
@@ -1977,7 +1980,7 @@ paths:
     get:
       tags:
       - Lista d'attesa
-      summary: Le voci della coda, a pagine col cursore
+      summary: Elenca le voci della lista d'attesa
       security:
       - apiKey: []
       x-required-scope: waitlist:read
@@ -2033,7 +2036,7 @@ paths:
       - name: status
         in: query
         required: false
-        description: Uno o piu' stati
+        description: Uno o più stati
         schema:
           type: array
           items:
@@ -2055,7 +2058,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -2106,7 +2109,7 @@ paths:
     post:
       tags:
       - Lista d'attesa
-      summary: Mette un ospite in lista d'attesa
+      summary: Crea una voce in lista d'attesa
       security:
       - apiKey: []
       x-required-scope: waitlist:write
@@ -2158,7 +2161,7 @@ paths:
               - phone
       responses:
         '200':
-          description: Gia' creata con la stessa Idempotency-Key
+          description: Già creata con la stessa Idempotency-Key
           content:
             application/json:
               schema:
@@ -2225,7 +2228,7 @@ paths:
     get:
       tags:
       - Lista d'attesa
-      summary: Una voce della coda
+      summary: Recupera una voce della lista d'attesa
       security:
       - apiKey: []
       x-required-scope: waitlist:read
@@ -2277,12 +2280,12 @@ paths:
     patch:
       tags:
       - Lista d'attesa
-      summary: Cambia coperti o fascia oraria
+      summary: Aggiorna una voce della lista d'attesa
       security:
       - apiKey: []
       x-required-scope: waitlist:write
-      description: 'Scope: `waitlist:write`. Una voce gia'' richiamata torna in attesa. Le voci convertite
-        o tolte non si modificano (409).'
+      description: 'Scope: `waitlist:write`. Modifica coperti o fascia oraria. Una voce già richiamata
+        torna in attesa. Una voce convertita o rimossa risponde 409.'
       operationId: updateWaitlistEntry
       parameters:
       - name: id
@@ -2371,12 +2374,13 @@ paths:
     delete:
       tags:
       - Lista d'attesa
-      summary: 'Toglie la voce dalla coda: diventa cancelled'
+      summary: Rimuovi una voce dalla lista d'attesa
       security:
       - apiKey: []
       x-required-scope: waitlist:write
-      description: 'Scope: `waitlist:write`. Ripetuto non cambia niente; una voce gia'' convertita e''
-        un 409. Fa partire l''evento waitlist_entry_cancelled.'
+      description: 'Scope: `waitlist:write`. Porta la voce allo stato `cancelled` ed emette l''evento
+        waitlist_entry_cancelled. La richiesta ripetuta non ha effetti; una voce già convertita risponde
+        409.'
       operationId: cancelWaitlistEntry
       parameters:
       - name: id
@@ -2431,13 +2435,13 @@ paths:
     post:
       tags:
       - Lista d'attesa
-      summary: La voce diventa una prenotazione
+      summary: Converti una voce in prenotazione
       security:
       - apiKey: []
       x-required-scope: waitlist:write
-      description: 'Scope: `waitlist:write` e `reservations:write`. Stesso ospite e coperti; l''orario
-        del richiamo se c''e'' stato, altrimenti l''inizio della fascia. Una voce gia'' convertita risponde
-        200 con la sua prenotazione.'
+      description: 'Scope: `waitlist:write` e `reservations:write`. La prenotazione ha lo stesso ospite
+        e gli stessi coperti; l''orario è quello del richiamo, se c''è stato, altrimenti l''inizio della
+        fascia. Una voce già convertita risponde 200 con la sua prenotazione.'
       operationId: convertWaitlistEntry
       parameters:
       - name: id
@@ -2454,7 +2458,7 @@ paths:
           type: string
       responses:
         '200':
-          description: Gia' convertita
+          description: Già convertita
           content:
             application/json:
               schema:
@@ -2515,7 +2519,7 @@ paths:
     get:
       tags:
       - Ospiti
-      summary: La rubrica, a pagine col cursore
+      summary: Elenca gli ospiti
       security:
       - apiKey: []
       x-required-scope: guests:read
@@ -2564,7 +2568,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -2615,12 +2619,13 @@ paths:
     post:
       tags:
       - Ospiti
-      summary: Crea l'ospite, o aggiorna quello del telefono
+      summary: Crea o aggiorna un ospite
       security:
       - apiKey: []
       x-required-scope: guests:write
-      description: 'Scope: `guests:write`. 201 se nasce, 200 se il telefono c''era gia'' (i campi mandati
-        si scrivono) o se la stessa Idempotency-Key ritrova la richiesta di prima.'
+      description: 'Scope: `guests:write`. Crea l''ospite o aggiorna quello con lo stesso telefono. Risponde
+        201 se l''ospite è nuovo, 200 se il telefono esiste già (i campi inviati vengono scritti) o se
+        la stessa Idempotency-Key ritrova la richiesta precedente.'
       operationId: upsertGuest
       parameters:
       - name: Idempotency-Key
@@ -2746,7 +2751,7 @@ paths:
     get:
       tags:
       - Ospiti
-      summary: Cerca un ospite dal telefono
+      summary: Cerca un ospite per telefono
       security:
       - apiKey: []
       x-required-scope: guests:read
@@ -2843,7 +2848,7 @@ paths:
     get:
       tags:
       - Ospiti
-      summary: La scheda di un ospite
+      summary: Recupera un ospite
       security:
       - apiKey: []
       x-required-scope: guests:read
@@ -2895,12 +2900,13 @@ paths:
     patch:
       tags:
       - Ospiti
-      summary: Modifica la scheda, i consensi e i tag di campagna
+      summary: Aggiorna un ospite
       security:
       - apiKey: []
       x-required-scope: guests:write
-      description: 'Scope: `guests:write`. null o "" toglie un campo. consents e campaignTags sono di
-        SQUADD quando e'' collegato all''organizzazione: in quel caso 403.'
+      description: 'Scope: `guests:write`. Aggiorna la scheda, i consensi e i tag di campagna. null o
+        "" rimuove un campo. Se SQUADD è collegato all''organizzazione, consents e campaignTags appartengono
+        a SQUADD e la modifica risponde 403.'
       operationId: updateGuest
       parameters:
       - name: id
@@ -3034,11 +3040,12 @@ paths:
     delete:
       tags:
       - Ospiti
-      summary: Manda l'ospite nel Cestino (30 giorni, poi esce davvero)
+      summary: Elimina un ospite
       security:
       - apiKey: []
       x-required-scope: guests:write
-      description: 'Scope: `guests:write`'
+      description: 'Scope: `guests:write`. Sposta l''ospite nel Cestino; dopo 30 giorni viene eliminato
+        definitivamente.'
       operationId: deleteGuest
       parameters:
       - name: id
@@ -3078,12 +3085,12 @@ paths:
     put:
       tags:
       - Ospiti
-      summary: Imposta i tag di servizio
+      summary: Imposta i tag di servizio di un ospite
       security:
       - apiKey: []
       x-required-scope: guests:write
-      description: 'Scope: `guests:write`. I nomi vengono dal catalogo (GET /service-tags); [] li toglie
-        tutti.'
+      description: 'Scope: `guests:write`. Sostituisce i tag dell''ospite; i nomi vengono dal catalogo
+        (GET /service-tags). [] li rimuove tutti.'
       operationId: setGuestServiceTags
       parameters:
       - name: id
@@ -3155,11 +3162,11 @@ paths:
     get:
       tags:
       - Ospiti
-      summary: 'La scheda di servizio: nome, allergie, tag'
+      summary: Recupera la scheda di servizio di un ospite
       security:
       - apiKey: []
       x-required-scope: guests:read
-      description: 'Scope: `guests:read`'
+      description: 'Scope: `guests:read`. Nome, allergie e tag di servizio dell''ospite.'
       operationId: getGuestServiceCard
       parameters:
       - name: id
@@ -3249,11 +3256,11 @@ paths:
     get:
       tags:
       - Eventi e report
-      summary: Lo storico degli eventi, nella busta del webhook
+      summary: Elenca gli eventi
       security:
       - apiKey: []
       x-required-scope: events:read
-      description: 'Scope: `events:read`'
+      description: 'Scope: `events:read`. Ogni evento ha la stessa busta dei webhook.'
       operationId: listEvents
       parameters:
       - name: limit
@@ -3282,7 +3289,7 @@ paths:
       - name: type
         in: query
         required: false
-        description: Uno o piu' tipi
+        description: Uno o più tipi
         schema:
           type: array
           items:
@@ -3359,11 +3366,11 @@ paths:
     get:
       tags:
       - Eventi e report
-      summary: Il consuntivo di un periodo, un giorno per riga
+      summary: Recupera il consuntivo di un periodo
       security:
       - apiKey: []
       x-required-scope: reports:read
-      description: 'Scope: `reports:read`'
+      description: 'Scope: `reports:read`. Una riga per giorno del periodo.'
       operationId: getPeriodReport
       parameters:
       - name: venueId
@@ -3430,11 +3437,11 @@ paths:
     get:
       tags:
       - Eventi e report
-      summary: La chiusura di fine serata, col confronto della settimana prima
+      summary: Recupera la chiusura di fine serata
       security:
       - apiKey: []
       x-required-scope: reports:read
-      description: 'Scope: `reports:read`'
+      description: 'Scope: `reports:read`. Include il confronto con lo stesso giorno della settimana precedente.'
       operationId: getEndOfDayReport
       parameters:
       - name: venueId
@@ -3493,12 +3500,12 @@ paths:
     get:
       tags:
       - Eventi e report
-      summary: L'export delle prenotazioni, in streaming
+      summary: Esporta le prenotazioni
       security:
       - apiKey: []
       x-required-scope: reports:read
-      description: 'Scope: `reports:read` e `reservations:read`. CSV (RFC 4180) o una prenotazione JSON
-        per riga.'
+      description: 'Scope: `reports:read` e `reservations:read`. Risposta in streaming: CSV (RFC 4180)
+        o una prenotazione JSON per riga.'
       operationId: exportReservations
       parameters:
       - name: format
@@ -3545,7 +3552,7 @@ paths:
       - name: status
         in: query
         required: false
-        description: Uno o piu' stati
+        description: Uno o più stati
         schema:
           type: array
           items:
@@ -3585,7 +3592,7 @@ paths:
       - name: updatedSince
         in: query
         required: false
-        description: Solo cio' che e' cambiato dopo questo istante
+        description: Solo ciò che è cambiato dopo questo istante
         schema:
           type: string
           description: Istante ISO 8601 con fuso
@@ -3634,11 +3641,11 @@ paths:
     get:
       tags:
       - Webhook
-      summary: 'Le consegne: status=discarded e'' la coda di scarto'
+      summary: Elenca le consegne dei webhook
       security:
       - apiKey: []
       x-required-scope: webhooks:read
-      description: 'Scope: `webhooks:read`'
+      description: 'Scope: `webhooks:read`. Le consegne con `status=discarded` formano la coda di scarto.'
       operationId: listWebhookDeliveries
       parameters:
       - name: limit
@@ -3659,7 +3666,7 @@ paths:
       - name: status
         in: query
         required: false
-        description: Uno o piu' stati
+        description: Uno o più stati
         schema:
           type: array
           items:
@@ -3731,11 +3738,12 @@ paths:
     post:
       tags:
       - Webhook
-      summary: Rispedisce una consegna finita, con la stessa chiave di idempotenza
+      summary: Reinvia una consegna
       security:
       - apiKey: []
       x-required-scope: webhooks:write
-      description: 'Scope: `webhooks:write`'
+      description: 'Scope: `webhooks:write`. Rimette in coda una consegna conclusa, con la stessa chiave
+        di idempotenza.'
       operationId: redeliverWebhook
       parameters:
       - name: id
@@ -3813,11 +3821,11 @@ paths:
     get:
       tags:
       - Webhook
-      summary: Le destinazioni dei locali della chiave
+      summary: Elenca le destinazioni dei webhook
       security:
       - apiKey: []
       x-required-scope: webhooks:read
-      description: 'Scope: `webhooks:read`'
+      description: 'Scope: `webhooks:read`. Le destinazioni dei locali accessibili alla chiave.'
       operationId: listWebhookEndpoints
       parameters:
       - name: limit
@@ -3889,12 +3897,12 @@ paths:
     post:
       tags:
       - Webhook
-      summary: Spedisce adesso un evento di prova firmato
+      summary: Invia un evento di prova
       security:
       - apiKey: []
       x-required-scope: webhooks:write
-      description: 'Scope: `webhooks:write`. Fuori dalla coda: niente ritentativi, l''esito torna nella
-        risposta.'
+      description: 'Scope: `webhooks:write`. Invia subito un evento di prova firmato, fuori dalla coda:
+        nessun nuovo tentativo, l''esito è nella risposta.'
       operationId: testWebhookEndpoint
       requestBody:
         required: true
@@ -4001,11 +4009,12 @@ paths:
     post:
       tags:
       - Webhook
-      summary: Ruota il segreto di firma, col segreto di prima ancora valido per un po'
+      summary: Ruota il segreto di firma
       security:
       - apiKey: []
       x-required-scope: webhooks:write
-      description: 'Scope: `webhooks:write`'
+      description: 'Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta valido
+        per `overlapMinutes` minuti.'
       operationId: rotateWebhookSecret
       parameters:
       - name: id
@@ -4104,13 +4113,13 @@ paths:
     post:
       tags:
       - Import
-      summary: Importa fino a 1000 ospiti
+      summary: Importa ospiti
       security:
       - apiKey: []
       x-required-scope: imports:write
-      description: 'Scope: `imports:write`. Crea o aggiorna per telefono. Una riga storta non ferma le
-        altre: finisce in `rejections` col motivo. Chi importa anche le prenotazioni passate non manda
-        visitCount/noShowCount (si conterebbero due volte).'
+      description: 'Scope: `imports:write`. Fino a 1000 righe per richiesta. Crea o aggiorna ogni ospite
+        per telefono. Una riga storta non ferma le altre: finisce in `rejections` col motivo. Chi importa
+        anche le prenotazioni passate non manda visitCount/noShowCount (si conterebbero due volte).'
       operationId: importGuests
       parameters:
       - name: Idempotency-Key
@@ -4261,13 +4270,13 @@ paths:
     post:
       tags:
       - Import
-      summary: Importa fino a 1000 prenotazioni, storico e future
+      summary: Importa prenotazioni
       security:
       - apiKey: []
       x-required-scope: imports:write
-      description: 'Scope: `imports:write`. Origine `import`. Il passato entra nel suo stato finale, senza
-        controllo di disponibilita'' e senza tavolo; il futuro passa dal motore come ogni prenotazione.
-        Nessuna automazione e nessun webhook partono.'
+      description: 'Scope: `imports:write`. Fino a 1000 righe per richiesta, passate e future. Origine
+        `import`. Il passato entra nel suo stato finale, senza controllo di disponibilità e senza tavolo;
+        il futuro passa dal motore come ogni prenotazione. Nessuna automazione e nessun webhook partono.'
       operationId: importReservations
       parameters:
       - name: Idempotency-Key
@@ -4333,7 +4342,7 @@ paths:
                       externalRef:
                         anyOf:
                         - type: string
-                          description: 'Il tuo identificativo: reimportare la stessa riga e'' un conflict'
+                          description: 'Il tuo identificativo: reimportare la stessa riga è un conflict'
                           maxLength: 200
                         - type: 'null'
                       channel:
@@ -4419,11 +4428,11 @@ paths:
     get:
       tags:
       - Import
-      summary: Il resoconto di un import
+      summary: Recupera un import
       security:
       - apiKey: []
       x-required-scope: imports:write
-      description: 'Scope: `imports:write`'
+      description: 'Scope: `imports:write`. Restituisce il resoconto di un import.'
       operationId: getImport
       parameters:
       - name: id
@@ -4634,7 +4643,7 @@ components:
           type: array
           items:
             type: integer
-            description: 0 = lunedi' ... 6 = domenica
+            description: 0 = lunedì ... 6 = domenica
         updatedAt:
           type: string
           description: Istante ISO 8601 con fuso
@@ -4656,7 +4665,7 @@ components:
         weekday:
           anyOf:
           - type: integer
-            description: 0 = lunedi' ... 6 = domenica
+            description: 0 = lunedì ... 6 = domenica
           - type: 'null'
         date:
           anyOf:
@@ -4841,10 +4850,10 @@ components:
                 type: integer
               widthCm:
                 type: integer
-                description: Ingombro gia' ruotato
+                description: Ingombro già ruotato
               heightCm:
                 type: integer
-                description: Ingombro gia' ruotato
+                description: Ingombro già ruotato
               rotationDegrees:
                 type: integer
               isBlocked:
@@ -5628,7 +5637,7 @@ components:
           - reservation_needs_attention
         createdAt:
           type: string
-          description: Quando e' accaduto il fatto
+          description: Quando è accaduto il fatto
           format: date-time
         venueId:
           type: string
@@ -5637,10 +5646,9 @@ components:
           type: string
           const: v1
         data:
-          description: 'In /events la fotografia del fatto, com''era quando e'' accaduto (guest della
-            prenotazione nullo); nel webhook la prenotazione di quando parte, e updatedAt dice quale e''
-            piu'' nuova. guest_profile_changed: in /events solo l''id dell''ospite, nel webhook la scheda
-            intera.'
+          description: 'In /events la fotografia del fatto, com''era quando è accaduto (guest della prenotazione
+            nullo); nel webhook la prenotazione di quando parte, e updatedAt dice quale è più nuova. guest_profile_changed:
+            in /events solo l''id dell''ospite, nel webhook la scheda intera.'
           anyOf:
           - type: object
             properties:
@@ -5900,7 +5908,7 @@ components:
           - processing
           - completed
           - failed
-          description: 'failed: un guasto a meta'', le righe gia'' entrate restano'
+          description: 'failed: un guasto a metà, le righe già entrate restano'
         totalRows:
           type: integer
         createdRows:

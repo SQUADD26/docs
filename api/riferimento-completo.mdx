@@ -9,7 +9,7 @@ icon: "file-lines"
 Base URL: `https://app.gestionesala.com/api/v1`. Autenticazione: header `Authorization: Bearer gsk_...` su ogni richiesta.
 Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml).
 
-## La chiave che sta chiamando
+## Recupera la chiave API corrente
 
 `GET /me`
 
@@ -46,9 +46,11 @@ Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/
 | `venues[].noShowToleranceMinutes` | integer | sì |  |
 | `venues[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 
-## Il servizio e il database rispondono
+## Verifica lo stato del servizio
 
 `GET /health`
+
+Verifica che il servizio e il database rispondano. Non richiede autenticazione.
 
 ### Risposte
 
@@ -64,9 +66,11 @@ Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/
 | `status` | string: `ok` | sì |  |
 | `time` | string (date-time) | sì | Istante ISO 8601 con fuso |
 
-## Questa specifica
+## Recupera la specifica OpenAPI
 
 `GET /openapi.json`
+
+Restituisce la specifica OpenAPI 3.1 di questa API. Non richiede autenticazione.
 
 ### Risposte
 
@@ -74,7 +78,7 @@ Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/
 | --- | --- |
 | `200` | OpenAPI 3.1 |
 
-## I locali della chiave
+## Elenca i locali accessibili alla chiave
 
 `GET /venues`
 
@@ -86,7 +90,7 @@ Scope: `venues:read`
 | --- | --- | --- | --- | --- |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -110,7 +114,7 @@ Scope: `venues:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Un locale
+## Recupera un locale
 
 `GET /venues/{id}`
 
@@ -143,7 +147,7 @@ Scope: `venues:read`
 | `venue.noShowToleranceMinutes` | integer | sì |  |
 | `venue.updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 
-## I turni del locale
+## Elenca i turni di un locale
 
 `GET /venues/{id}/shifts`
 
@@ -156,7 +160,7 @@ Scope: `venues:read`
 | `id` | path | string (uuid) | sì |  |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -183,7 +187,7 @@ Scope: `venues:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Le chiusure del locale
+## Elenca le chiusure di un locale
 
 `GET /venues/{id}/closures`
 
@@ -196,7 +200,7 @@ Scope: `venues:read`
 | `id` | path | string (uuid) | sì |  |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -221,7 +225,7 @@ Scope: `venues:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Le sale del locale
+## Elenca le sale di un locale
 
 `GET /venues/{id}/areas`
 
@@ -234,7 +238,7 @@ Scope: `floor:read`
 | `id` | path | string (uuid) | sì |  |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -261,7 +265,7 @@ Scope: `floor:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## I tavoli della pianta attiva
+## Elenca i tavoli della pianta attiva
 
 `GET /venues/{id}/tables`
 
@@ -274,7 +278,7 @@ Scope: `floor:read`
 | `id` | path | string (uuid) | sì |  |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -304,7 +308,7 @@ Scope: `floor:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Le piante del locale
+## Elenca le piante di un locale
 
 `GET /venues/{id}/floor-plans`
 
@@ -317,7 +321,7 @@ Scope: `floor:read`
 | `id` | path | string (uuid) | sì |  |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -342,7 +346,7 @@ Scope: `floor:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Una pianta intera
+## Recupera una pianta
 
 `GET /venues/{id}/floor-plans/{planId}`
 
@@ -389,15 +393,15 @@ Scope: `floor:read`
 | `floorPlan.tables[].maxSeats` | integer | sì |  |
 | `floorPlan.tables[].positionXCm` | integer | sì |  |
 | `floorPlan.tables[].positionYCm` | integer | sì |  |
-| `floorPlan.tables[].widthCm` | integer | sì | Ingombro gia' ruotato |
-| `floorPlan.tables[].heightCm` | integer | sì | Ingombro gia' ruotato |
+| `floorPlan.tables[].widthCm` | integer | sì | Ingombro già ruotato |
+| `floorPlan.tables[].heightCm` | integer | sì | Ingombro già ruotato |
 | `floorPlan.tables[].rotationDegrees` | integer | sì |  |
 | `floorPlan.tables[].isBlocked` | boolean | sì |  |
 | `floorPlan.combinations` | array | sì |  |
 | `floorPlan.combinations[].id` | string (uuid) | sì |  |
 | `floorPlan.combinations[].tableIds` | array | sì |  |
 
-## La sala adesso
+## Recupera lo stato della sala
 
 `GET /venues/{id}/floor`
 
@@ -460,7 +464,7 @@ Scope: `floor:read` e `reservations:read`
 | `reservations[].guestDetails` | object | no |  |
 | `reservations[].table` | object | no |  |
 
-## Quanto resta seduto un tavolo, per coperti
+## Elenca le regole di durata del tavolo
 
 `GET /venues/{id}/turn-time-rules`
 
@@ -473,7 +477,7 @@ Scope: `venues:read`
 | `id` | path | string (uuid) | sì |  |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -500,7 +504,7 @@ Scope: `venues:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Il ritmo degli arrivi
+## Elenca le regole di ritmo degli arrivi
 
 `GET /venues/{id}/pacing-rules`
 
@@ -513,7 +517,7 @@ Scope: `venues:read`
 | `id` | path | string (uuid) | sì |  |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -539,7 +543,7 @@ Scope: `venues:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Il catalogo dei tag di servizio
+## Elenca i tag di servizio
 
 `GET /service-tags`
 
@@ -551,7 +555,7 @@ Scope: `guests:read`
 | --- | --- | --- | --- | --- |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -573,7 +577,7 @@ Scope: `guests:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## C'e' posto a quell'ora per quei coperti
+## Verifica la disponibilità
 
 `GET /availability`
 
@@ -608,7 +612,7 @@ Scope: `reservations:read`
 | `partySize` | integer | sì |  |
 | `timezone` | string | sì | Fuso IANA del locale |
 | `available` | boolean | sì |  |
-| `reason` | string | no | Perche' no, se non c'e' posto |
+| `reason` | string | no | Perché no, se non c'è posto |
 | `alternatives` | array | sì |  |
 | `alternatives[].time` | string | sì | Ora locale del locale, HH:mm |
 | `alternatives[].startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
@@ -617,11 +621,11 @@ Scope: `reservations:read`
 | `alternatives[].seats` | integer | sì |  |
 | `alternatives[].overflowsShift` | boolean | sì |  |
 
-## Tutti gli orari prenotabili del giorno
+## Elenca gli orari disponibili
 
 `GET /availability/slots`
 
-Scope: `reservations:read`. Ogni orario, a passi di 15 minuti dall'apertura del turno, e' uno in cui una prenotazione passerebbe adesso.
+Scope: `reservations:read`. Ogni orario, a passi di 15 minuti dall'apertura del turno, è un orario in cui una prenotazione verrebbe accettata in questo momento.
 
 ### Parametri
 
@@ -659,11 +663,11 @@ Scope: `reservations:read`. Ogni orario, a passi di 15 minuti dall'apertura del 
 | `data[].overflowsShift` | boolean | sì |  |
 | `nextCursor` | object | sì |  |
 
-## Quali giorni hanno posto in un intervallo
+## Elenca i giorni disponibili
 
 `GET /availability/days`
 
-Scope: `reservations:read`. Al massimo 62 giorni, estremi compresi.
+Scope: `reservations:read`. Intervallo di al massimo 62 giorni, estremi inclusi.
 
 ### Parametri
 
@@ -700,7 +704,7 @@ Scope: `reservations:read`. Al massimo 62 giorni, estremi compresi.
 | `data[].slotCount` | integer | sì | Quanti orari di /availability/slots |
 | `nextCursor` | object | sì |  |
 
-## Le prenotazioni, a pagine col cursore
+## Elenca le prenotazioni
 
 `GET /reservations`
 
@@ -716,10 +720,10 @@ Scope: `reservations:read`
 | `serviceDate` | query | string (date) | no | Un giorno di servizio, in alternativa a from/to |
 | `from` | query | string (date) | no | Dal giorno di servizio (compreso) |
 | `to` | query | string (date) | no | Al giorno di servizio (compreso) |
-| `status` | query | array | no | Uno o piu' stati |
+| `status` | query | array | no | Uno o più stati |
 | `guestId` | query | string (uuid) | no | Solo questo ospite |
 | `source` | query | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | no | Solo questa origine |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 | `externalRef` | query | string | no | Solo quella col tuo identificativo |
 | `expand` | query | array | no | guest aggiunge guestDetails (serve anche guests:read), table aggiunge table |
 
@@ -781,10 +785,10 @@ Scope: `reservations:write`
 | `partySize` | integer | sì |  |
 | `phone` | string | no | Telefono dell'ospite: lo riconosce o lo crea |
 | `guestName` | string | no |  |
-| `email` | string (email) | no | Solo con phone; riempie l'ospite se non l'ha gia' |
-| `firstName` | string | no | Solo con phone; riempie l'ospite se non l'ha gia' |
-| `lastName` | string | no | Solo con phone; riempie l'ospite se non l'ha gia' |
-| `serviceTags` | array | no | Solo con phone: si aggiungono all'ospite; un nome fuori catalogo e' un 400 |
+| `email` | string (email) | no | Solo con phone; riempie l'ospite se non l'ha già |
+| `firstName` | string | no | Solo con phone; riempie l'ospite se non l'ha già |
+| `lastName` | string | no | Solo con phone; riempie l'ospite se non l'ha già |
+| `serviceTags` | array | no | Solo con phone: si aggiungono all'ospite; un nome fuori catalogo è un 400 |
 | `notes` | string | no |  |
 | `channel` | string | no | Da dove arriva, es. sito o Google: finisce in sourceDetail |
 | `externalRef` | string | no | Il tuo identificativo, unico nella tua organizzazione |
@@ -793,7 +797,7 @@ Scope: `reservations:write`
 
 | Status | Descrizione |
 | --- | --- |
-| `200` | Gia' creata con la stessa Idempotency-Key |
+| `200` | Già creata con la stessa Idempotency-Key |
 | `201` | Creata (dalla chiave pubblica del widget: WidgetReservation) |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
@@ -809,7 +813,7 @@ Scope: `reservations:write`
 | --- | --- | --- | --- |
 | `reservation` | object | sì |  |
 
-## Una prenotazione
+## Recupera una prenotazione
 
 `GET /reservations/{id}`
 
@@ -858,11 +862,11 @@ Scope: `reservations:read`
 | `reservation.guestDetails` | object | no |  |
 | `reservation.table` | object | no |  |
 
-## Conferma, sposta, cambia stato, tavolo o ospite
+## Aggiorna una prenotazione
 
 `PATCH /reservations/{id}`
 
-Scope: `reservations:write`. Gli stati della sala (arrived, seated, released, completed, no_show) e tableId/tableCombinationId chiedono anche `floor:write`. Si disdice con DELETE.
+Scope: `reservations:write`. Conferma, sposta o cambia stato, tavolo o ospite. Gli stati della sala (arrived, seated, released, completed, no_show) e tableId/tableCombinationId chiedono anche `floor:write`. Per annullare si usa DELETE.
 
 ### Parametri
 
@@ -923,11 +927,11 @@ Scope: `reservations:write`. Gli stati della sala (arrived, seated, released, co
 | `reservation.guestDetails` | object | no |  |
 | `reservation.table` | object | no |  |
 
-## Disdice: la prenotazione diventa cancelled
+## Annulla una prenotazione
 
 `DELETE /reservations/{id}`
 
-Scope: `reservations:write`. Gia' cancelled: 200 con la prenotazione, nessun effetto. Da uno stato che non si disdice (seated, released, completed, no_show): 409 conflict con details.allowedTransitions.
+Scope: `reservations:write`. Porta la prenotazione allo stato `cancelled`. Se è già `cancelled`, risponde 200 senza effetti. Dagli stati seated, released, completed e no_show risponde 409 conflict con details.allowedTransitions.
 
 ### Parametri
 
@@ -971,7 +975,7 @@ Scope: `reservations:write`. Gia' cancelled: 200 con la prenotazione, nessun eff
 | `reservation.guestDetails` | object | no |  |
 | `reservation.table` | object | no |  |
 
-## Le voci della coda, a pagine col cursore
+## Elenca le voci della lista d'attesa
 
 `GET /waitlist`
 
@@ -987,9 +991,9 @@ Scope: `waitlist:read`
 | `serviceDate` | query | string (date) | no | Un giorno di servizio, in alternativa a from/to |
 | `from` | query | string (date) | no | Dal giorno di servizio (compreso) |
 | `to` | query | string (date) | no | Al giorno di servizio (compreso) |
-| `status` | query | array | no | Uno o piu' stati |
+| `status` | query | array | no | Uno o più stati |
 | `guestId` | query | string (uuid) | no | Solo questo ospite |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -1020,7 +1024,7 @@ Scope: `waitlist:read`
 | `data[].guest` | object | sì |  |
 | `nextCursor` | object | sì |  |
 
-## Mette un ospite in lista d'attesa
+## Crea una voce in lista d'attesa
 
 `POST /waitlist`
 
@@ -1048,7 +1052,7 @@ Scope: `waitlist:write`
 
 | Status | Descrizione |
 | --- | --- |
-| `200` | Gia' creata con la stessa Idempotency-Key |
+| `200` | Già creata con la stessa Idempotency-Key |
 | `201` | Creata |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
@@ -1076,7 +1080,7 @@ Scope: `waitlist:write`
 | `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 | `entry.guest` | object | sì |  |
 
-## Una voce della coda
+## Recupera una voce della lista d'attesa
 
 `GET /waitlist/{id}`
 
@@ -1116,11 +1120,11 @@ Scope: `waitlist:read`
 | `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 | `entry.guest` | object | sì |  |
 
-## Cambia coperti o fascia oraria
+## Aggiorna una voce della lista d'attesa
 
 `PATCH /waitlist/{id}`
 
-Scope: `waitlist:write`. Una voce gia' richiamata torna in attesa. Le voci convertite o tolte non si modificano (409).
+Scope: `waitlist:write`. Modifica coperti o fascia oraria. Una voce già richiamata torna in attesa. Una voce convertita o rimossa risponde 409.
 
 ### Parametri
 
@@ -1168,11 +1172,11 @@ Scope: `waitlist:write`. Una voce gia' richiamata torna in attesa. Le voci conve
 | `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 | `entry.guest` | object | sì |  |
 
-## Toglie la voce dalla coda: diventa cancelled
+## Rimuovi una voce dalla lista d'attesa
 
 `DELETE /waitlist/{id}`
 
-Scope: `waitlist:write`. Ripetuto non cambia niente; una voce gia' convertita e' un 409. Fa partire l'evento waitlist_entry_cancelled.
+Scope: `waitlist:write`. Porta la voce allo stato `cancelled` ed emette l'evento waitlist_entry_cancelled. La richiesta ripetuta non ha effetti; una voce già convertita risponde 409.
 
 ### Parametri
 
@@ -1209,11 +1213,11 @@ Scope: `waitlist:write`. Ripetuto non cambia niente; una voce gia' convertita e'
 | `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 | `entry.guest` | object | sì |  |
 
-## La voce diventa una prenotazione
+## Converti una voce in prenotazione
 
 `POST /waitlist/{id}/convert`
 
-Scope: `waitlist:write` e `reservations:write`. Stesso ospite e coperti; l'orario del richiamo se c'e' stato, altrimenti l'inizio della fascia. Una voce gia' convertita risponde 200 con la sua prenotazione.
+Scope: `waitlist:write` e `reservations:write`. La prenotazione ha lo stesso ospite e gli stessi coperti; l'orario è quello del richiamo, se c'è stato, altrimenti l'inizio della fascia. Una voce già convertita risponde 200 con la sua prenotazione.
 
 ### Parametri
 
@@ -1226,7 +1230,7 @@ Scope: `waitlist:write` e `reservations:write`. Stesso ospite e coperti; l'orari
 
 | Status | Descrizione |
 | --- | --- |
-| `200` | Gia' convertita |
+| `200` | Già convertita |
 | `201` | Convertita |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
 | `403` | forbidden, insufficient_scope |
@@ -1260,7 +1264,7 @@ Scope: `waitlist:write` e `reservations:write`. Stesso ospite e coperti; l'orari
 | `reservation.guestDetails` | object | no |  |
 | `reservation.table` | object | no |  |
 
-## La rubrica, a pagine col cursore
+## Elenca gli ospiti
 
 `GET /guests`
 
@@ -1276,7 +1280,7 @@ Scope: `guests:read`
 | `phone` | query | string | no | Un telefono, qualunque forma |
 | `email` | query | string | no | Un'email |
 | `externalRef` | query | string | no | Il tuo identificativo |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -1314,11 +1318,11 @@ Scope: `guests:read`
 | `data[].updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 | `nextCursor` | object | sì |  |
 
-## Crea l'ospite, o aggiorna quello del telefono
+## Crea o aggiorna un ospite
 
 `POST /guests`
 
-Scope: `guests:write`. 201 se nasce, 200 se il telefono c'era gia' (i campi mandati si scrivono) o se la stessa Idempotency-Key ritrova la richiesta di prima.
+Scope: `guests:write`. Crea l'ospite o aggiorna quello con lo stesso telefono. Risponde 201 se l'ospite è nuovo, 200 se il telefono esiste già (i campi inviati vengono scritti) o se la stessa Idempotency-Key ritrova la richiesta precedente.
 
 ### Parametri
 
@@ -1377,7 +1381,7 @@ Scope: `guests:write`. 201 se nasce, 200 se il telefono c'era gia' (i campi mand
 | `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 
-## Cerca un ospite dal telefono
+## Cerca un ospite per telefono
 
 `GET /guests/lookup`
 
@@ -1418,7 +1422,7 @@ Scope: `guests:read`
 | `found` | object | sì |  |
 | `phone` | string | sì | E.164 |
 
-## La scheda di un ospite
+## Recupera un ospite
 
 `GET /guests/{id}`
 
@@ -1465,11 +1469,11 @@ Scope: `guests:read`
 | `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 
-## Modifica la scheda, i consensi e i tag di campagna
+## Aggiorna un ospite
 
 `PATCH /guests/{id}`
 
-Scope: `guests:write`. null o "" toglie un campo. consents e campaignTags sono di SQUADD quando e' collegato all'organizzazione: in quel caso 403.
+Scope: `guests:write`. Aggiorna la scheda, i consensi e i tag di campagna. null o "" rimuove un campo. Se SQUADD è collegato all'organizzazione, consents e campaignTags appartengono a SQUADD e la modifica risponde 403.
 
 ### Parametri
 
@@ -1531,11 +1535,11 @@ Scope: `guests:write`. null o "" toglie un campo. consents e campaignTags sono d
 | `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 
-## Manda l'ospite nel Cestino (30 giorni, poi esce davvero)
+## Elimina un ospite
 
 `DELETE /guests/{id}`
 
-Scope: `guests:write`
+Scope: `guests:write`. Sposta l'ospite nel Cestino; dopo 30 giorni viene eliminato definitivamente.
 
 ### Parametri
 
@@ -1553,11 +1557,11 @@ Scope: `guests:write`
 | `404` | not_found |
 | `429` | rate_limited |
 
-## Imposta i tag di servizio
+## Imposta i tag di servizio di un ospite
 
 `PUT /guests/{id}/tags`
 
-Scope: `guests:write`. I nomi vengono dal catalogo (GET /service-tags); [] li toglie tutti.
+Scope: `guests:write`. Sostituisce i tag dell'ospite; i nomi vengono dal catalogo (GET /service-tags). [] li rimuove tutti.
 
 ### Parametri
 
@@ -1607,11 +1611,11 @@ Scope: `guests:write`. I nomi vengono dal catalogo (GET /service-tags); [] li to
 | `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
 
-## La scheda di servizio: nome, allergie, tag
+## Recupera la scheda di servizio di un ospite
 
 `GET /guests/{id}/service-card`
 
-Scope: `guests:read`
+Scope: `guests:read`. Nome, allergie e tag di servizio dell'ospite.
 
 ### Parametri
 
@@ -1640,11 +1644,11 @@ Scope: `guests:read`
 | `serviceCard.allergens` | array | sì |  |
 | `serviceCard.serviceTags` | array | sì |  |
 
-## Lo storico degli eventi, nella busta del webhook
+## Elenca gli eventi
 
 `GET /events`
 
-Scope: `events:read`
+Scope: `events:read`. Ogni evento ha la stessa busta dei webhook.
 
 ### Parametri
 
@@ -1653,7 +1657,7 @@ Scope: `events:read`
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
 | `since` | query | string (date-time) | no | Solo gli eventi dopo questo istante |
-| `type` | query | array | no | Uno o piu' tipi |
+| `type` | query | array | no | Uno o più tipi |
 | `venueId` | query | string (uuid) | no | Solo questo locale |
 
 ### Risposte
@@ -1674,17 +1678,17 @@ Scope: `events:read`
 | `data[].id` | string (uuid) | sì | L'evento: coincide con eventId |
 | `data[].eventId` | string (uuid) | sì | Lo stesso eventId del webhook |
 | `data[].type` | string: `reservation_created`, `reservation_confirmed`, `reservation_modified`, `reservation_cancelled`, `guest_arrived`, `guest_seated`, `table_released`, `reservation_late`, `reservation_no_show`, `meal_completed`, `waitlist_entry_created`, `compatible_table_freed`, `guest_profile_changed`, `waitlist_entry_cancelled`, `reservation_needs_attention` | sì |  |
-| `data[].createdAt` | string (date-time) | sì | Quando e' accaduto il fatto |
+| `data[].createdAt` | string (date-time) | sì | Quando è accaduto il fatto |
 | `data[].venueId` | string (uuid) | sì |  |
 | `data[].apiVersion` | string | sì |  |
-| `data[].data` | object | sì | In /events la fotografia del fatto, com'era quando e' accaduto (guest della prenotazione nullo); nel webhook la prenotazione di quando parte, e updatedAt dice quale e' piu' nuova. guest_profile_changed: in /events solo l'id dell'ospite, nel webhook la scheda intera. |
+| `data[].data` | object | sì | In /events la fotografia del fatto, com'era quando è accaduto (guest della prenotazione nullo); nel webhook la prenotazione di quando parte, e updatedAt dice quale è più nuova. guest_profile_changed: in /events solo l'id dell'ospite, nel webhook la scheda intera. |
 | `nextCursor` | object | sì |  |
 
-## Il consuntivo di un periodo, un giorno per riga
+## Recupera il consuntivo di un periodo
 
 `GET /reports/period`
 
-Scope: `reports:read`
+Scope: `reports:read`. Una riga per giorno del periodo.
 
 ### Parametri
 
@@ -1724,11 +1728,11 @@ Scope: `reports:read`
 | `totals.noShows` | integer | sì |  |
 | `totals.waitlistRecovered` | integer | sì |  |
 
-## La chiusura di fine serata, col confronto della settimana prima
+## Recupera la chiusura di fine serata
 
 `GET /reports/eod`
 
-Scope: `reports:read`
+Scope: `reports:read`. Include il confronto con lo stesso giorno della settimana precedente.
 
 ### Parametri
 
@@ -1767,11 +1771,11 @@ Scope: `reports:read`
 | `previousWeek.noShows` | integer | sì |  |
 | `previousWeek.waitlistRecovered` | integer | sì |  |
 
-## L'export delle prenotazioni, in streaming
+## Esporta le prenotazioni
 
 `GET /exports/reservations`
 
-Scope: `reports:read` e `reservations:read`. CSV (RFC 4180) o una prenotazione JSON per riga.
+Scope: `reports:read` e `reservations:read`. Risposta in streaming: CSV (RFC 4180) o una prenotazione JSON per riga.
 
 ### Parametri
 
@@ -1782,10 +1786,10 @@ Scope: `reports:read` e `reservations:read`. CSV (RFC 4180) o una prenotazione J
 | `serviceDate` | query | string (date) | no | Un giorno di servizio, in alternativa a from/to |
 | `from` | query | string (date) | no | Dal giorno di servizio (compreso) |
 | `to` | query | string (date) | no | Al giorno di servizio (compreso) |
-| `status` | query | array | no | Uno o piu' stati |
+| `status` | query | array | no | Uno o più stati |
 | `guestId` | query | string (uuid) | no | Solo questo ospite |
 | `source` | query | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | no | Solo questa origine |
-| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `updatedSince` | query | string (date-time) | no | Solo ciò che è cambiato dopo questo istante |
 
 ### Risposte
 
@@ -1805,11 +1809,11 @@ Formati della risposta: `text/csv`, `application/x-ndjson`
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
 
-## Le consegne: status=discarded e' la coda di scarto
+## Elenca le consegne dei webhook
 
 `GET /webhook-deliveries`
 
-Scope: `webhooks:read`
+Scope: `webhooks:read`. Le consegne con `status=discarded` formano la coda di scarto.
 
 ### Parametri
 
@@ -1817,7 +1821,7 @@ Scope: `webhooks:read`
 | --- | --- | --- | --- | --- |
 | `limit` | query | integer | no | Righe per pagina |
 | `cursor` | query | string | no | Il nextCursor della risposta precedente |
-| `status` | query | array | no | Uno o piu' stati |
+| `status` | query | array | no | Uno o più stati |
 | `venueId` | query | string (uuid) | no | Solo questo locale |
 | `endpointId` | query | string (uuid) | no | Solo questa destinazione |
 
@@ -1852,11 +1856,11 @@ Scope: `webhooks:read`
 | `data[].body` | object | sì | Il corpo spedito: la busta del webhook, ridotta agli scope di chi legge. Senza guests:read dell'ospite resta l'id; reservation e waitlistEntry chiedono il loro scope di lettura o events:read. |
 | `nextCursor` | object | sì |  |
 
-## Rispedisce una consegna finita, con la stessa chiave di idempotenza
+## Reinvia una consegna
 
 `POST /webhook-deliveries/{id}/redeliver`
 
-Scope: `webhooks:write`
+Scope: `webhooks:write`. Rimette in coda una consegna conclusa, con la stessa chiave di idempotenza.
 
 ### Parametri
 
@@ -1898,11 +1902,11 @@ Scope: `webhooks:write`
 | `delivery.updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `delivery.body` | object | sì | Il corpo spedito: la busta del webhook, ridotta agli scope di chi legge. Senza guests:read dell'ospite resta l'id; reservation e waitlistEntry chiedono il loro scope di lettura o events:read. |
 
-## Le destinazioni dei locali della chiave
+## Elenca le destinazioni dei webhook
 
 `GET /webhook-endpoints`
 
-Scope: `webhooks:read`
+Scope: `webhooks:read`. Le destinazioni dei locali accessibili alla chiave.
 
 ### Parametri
 
@@ -1937,11 +1941,11 @@ Scope: `webhooks:read`
 | `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `nextCursor` | object | sì |  |
 
-## Spedisce adesso un evento di prova firmato
+## Invia un evento di prova
 
 `POST /webhook-endpoints/test`
 
-Scope: `webhooks:write`. Fuori dalla coda: niente ritentativi, l'esito torna nella risposta.
+Scope: `webhooks:write`. Invia subito un evento di prova firmato, fuori dalla coda: nessun nuovo tentativo, l'esito è nella risposta.
 
 ### Body (JSON)
 
@@ -1977,11 +1981,11 @@ Scope: `webhooks:write`. Fuori dalla coda: niente ritentativi, l'esito torna nel
 | `event.apiVersion` | string | sì |  |
 | `event.data` | object | sì |  |
 
-## Ruota il segreto di firma, col segreto di prima ancora valido per un po'
+## Ruota il segreto di firma
 
 `POST /webhook-endpoints/{id}/rotate-secret`
 
-Scope: `webhooks:write`
+Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta valido per `overlapMinutes` minuti.
 
 ### Parametri
 
@@ -2018,11 +2022,11 @@ Scope: `webhooks:write`
 | `secret` | string | sì | Il segreto nuovo: si vede solo qui |
 | `previousSecretExpiresAt` | string (date-time) | sì | Fino a quando firma anche il segreto di prima |
 
-## Importa fino a 1000 ospiti
+## Importa ospiti
 
 `POST /imports/guests`
 
-Scope: `imports:write`. Crea o aggiorna per telefono. Una riga storta non ferma le altre: finisce in `rejections` col motivo. Chi importa anche le prenotazioni passate non manda visitCount/noShowCount (si conterebbero due volte).
+Scope: `imports:write`. Fino a 1000 righe per richiesta. Crea o aggiorna ogni ospite per telefono. Una riga storta non ferma le altre: finisce in `rejections` col motivo. Chi importa anche le prenotazioni passate non manda visitCount/noShowCount (si conterebbero due volte).
 
 ### Parametri
 
@@ -2067,7 +2071,7 @@ Scope: `imports:write`. Crea o aggiorna per telefono. Una riga storta non ferma 
 | `import` | object | sì |  |
 | `import.id` | string (uuid) | sì |  |
 | `import.kind` | string: `guests`, `reservations` | sì |  |
-| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a meta', le righe gia' entrate restano |
+| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a metà, le righe già entrate restano |
 | `import.totalRows` | integer | sì |  |
 | `import.createdRows` | integer | sì |  |
 | `import.updatedRows` | integer | sì |  |
@@ -2080,11 +2084,11 @@ Scope: `imports:write`. Crea o aggiorna per telefono. Una riga storta non ferma 
 | `import.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `import.completedAt` | object | sì |  |
 
-## Importa fino a 1000 prenotazioni, storico e future
+## Importa prenotazioni
 
 `POST /imports/reservations`
 
-Scope: `imports:write`. Origine `import`. Il passato entra nel suo stato finale, senza controllo di disponibilita' e senza tavolo; il futuro passa dal motore come ogni prenotazione. Nessuna automazione e nessun webhook partono.
+Scope: `imports:write`. Fino a 1000 righe per richiesta, passate e future. Origine `import`. Il passato entra nel suo stato finale, senza controllo di disponibilità e senza tavolo; il futuro passa dal motore come ogni prenotazione. Nessuna automazione e nessun webhook partono.
 
 ### Parametri
 
@@ -2129,7 +2133,7 @@ Scope: `imports:write`. Origine `import`. Il passato entra nel suo stato finale,
 | `import` | object | sì |  |
 | `import.id` | string (uuid) | sì |  |
 | `import.kind` | string: `guests`, `reservations` | sì |  |
-| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a meta', le righe gia' entrate restano |
+| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a metà, le righe già entrate restano |
 | `import.totalRows` | integer | sì |  |
 | `import.createdRows` | integer | sì |  |
 | `import.updatedRows` | integer | sì |  |
@@ -2142,11 +2146,11 @@ Scope: `imports:write`. Origine `import`. Il passato entra nel suo stato finale,
 | `import.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
 | `import.completedAt` | object | sì |  |
 
-## Il resoconto di un import
+## Recupera un import
 
 `GET /imports/{id}`
 
-Scope: `imports:write`
+Scope: `imports:write`. Restituisce il resoconto di un import.
 
 ### Parametri
 
@@ -2171,7 +2175,7 @@ Scope: `imports:write`
 | `import` | object | sì |  |
 | `import.id` | string (uuid) | sì |  |
 | `import.kind` | string: `guests`, `reservations` | sì |  |
-| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a meta', le righe gia' entrate restano |
+| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a metà, le righe già entrate restano |
 | `import.totalRows` | integer | sì |  |
 | `import.createdRows` | integer | sì |  |
 | `import.updatedRows` | integer | sì |  |
