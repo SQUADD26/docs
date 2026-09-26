@@ -12,7 +12,7 @@ L'azione **Avvisa SQUADD** indica dove consegnare in uno di questi modi:
 
 | Modo | Segreto di firma |
 | --- | --- |
-| Indirizzo scritto nell'azione | Segreto dell'organizzazione |
+| Indirizzo scritto nell'azione | Segreto dell'organizzazione, con rotazione |
 | Destinazione registrata del locale (`GET /webhook-endpoints`) | Segreto della destinazione, con rotazione |
 
 Un'azione senza indirizzo e senza destinazione usa la destinazione principale del locale, cioè la registrata per prima. Se non esiste o è spenta, la consegna fallisce e l'esito compare nello storico dell'automazione.
@@ -115,10 +115,14 @@ Il risultato, in esadecimale minuscolo, viaggia in `X-Gestionesala-Signature` co
 
 ### Segreto
 
-- **Destinazione registrata**: ogni destinazione ha il proprio segreto, versionato. `POST /webhook-endpoints/{id}/rotate-secret` genera la versione successiva e la restituisce una sola volta.
-- **Indirizzo nell'azione**: la consegna è firmata con il segreto dell'organizzazione, che coincide con la versione `0` di ogni destinazione.
+- **Indirizzo nell'azione**: la consegna è firmata con il segreto dell'organizzazione, unico per tutti i locali. Il segreto si ottiene generandone uno nuovo, da **Impostazioni → Collegamenti**, sezione **Firma dei webhook**, con **Genera nuovo segreto**, oppure con `POST /webhook-secret/rotate`. Il segreto viene mostrato una sola volta e non è più consultabile. Finché non viene generato, le consegne sono firmate con una versione iniziale non consultabile.
+- **Destinazione registrata**: ogni destinazione ha il proprio segreto, versionato. `POST /webhook-endpoints/{id}/rotate-secret` genera la versione successiva e la restituisce una sola volta. La rotazione del segreto dell'organizzazione non cambia il segreto delle destinazioni.
 
-Durante una rotazione, per `overlapMinutes` minuti (predefinito: un giorno), l'header contiene due firme separate da virgola: `v1=<nuova>,v1=<precedente>`. Una firma valida è sufficiente. Aggiorna il segreto nel destinatario entro la scadenza della versione precedente.
+Il segreto dell'organizzazione firma le consegne di ogni locale. Per generarlo servono il permesso di gestire i collegamenti in tutti i locali dell'organizzazione oppure una chiave API con `webhooks:write` non limitata a certi locali. Una chiave limitata riceve `403 forbidden`.
+
+Durante una rotazione, per `overlapMinutes` minuti (da `0` a `10080`, predefinito `1440`, cioè un giorno), l'header contiene due firme separate da virgola: `v1=<nuova>,v1=<precedente>`. Una firma valida è sufficiente. Aggiorna il segreto nel destinatario entro la scadenza della versione precedente, indicata in `previousSecretExpiresAt`. Con `overlapMinutes: 0` la versione precedente smette di firmare subito. La rotazione da **Impostazioni → Collegamenti** usa sempre un giorno.
+
+Con la stessa `Idempotency-Key`, una seconda richiesta di rotazione restituisce il segreto già generato invece di generarne un altro.
 
 ### Verifica
 
@@ -214,6 +218,7 @@ Dopo il quinto tentativo fallito, la consegna passa a `discarded` ed entra nella
 | `POST /webhook-deliveries/{id}/redeliver` | `webhooks:write` | Rimette in coda una consegna conclusa, con la stessa chiave di idempotenza e lo stesso corpo, verso la stessa destinazione |
 | `GET /webhook-endpoints` | `webhooks:read` | Destinazioni registrate dei locali della chiave |
 | `POST /webhook-endpoints/test` | `webhooks:write` | Invia subito un evento `webhook_test` firmato a una destinazione e restituisce l'esito |
-| `POST /webhook-endpoints/{id}/rotate-secret` | `webhooks:write` | Genera un nuovo segreto; il precedente resta valido per `overlapMinutes` |
+| `POST /webhook-endpoints/{id}/rotate-secret` | `webhooks:write` | Genera un nuovo segreto della destinazione; il precedente resta valido per `overlapMinutes` |
+| `POST /webhook-secret/rotate` | `webhooks:write`, chiave non limitata | Genera un nuovo segreto dell'organizzazione; il precedente resta valido per `overlapMinutes` |
 
 Una consegna ancora `pending` non si può rispedire: la risposta è `409`. In `GET /webhook-deliveries` il corpo di ogni consegna è filtrato con gli scope della chiave: senza `guests:read` i dati dell'ospite sono ridotti all'`id`, senza `reservations:read` (o `events:read`) la prenotazione è `null`.

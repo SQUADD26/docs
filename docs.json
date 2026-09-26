@@ -181,7 +181,8 @@
                   "POST /webhook-deliveries/{id}/redeliver",
                   "GET /webhook-endpoints",
                   "POST /webhook-endpoints/test",
-                  "POST /webhook-endpoints/{id}/rotate-secret"
+                  "POST /webhook-endpoints/{id}/rotate-secret",
+                  "POST /webhook-secret/rotate"
                 ]
               },
               {
