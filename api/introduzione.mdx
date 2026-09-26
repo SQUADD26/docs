@@ -5,7 +5,7 @@ description: "API REST v1 di Gestione Sala: base URL, formato di richieste e ris
 icon: "code"
 ---
 
-L'API v1 di Gestione Sala espone disponibilità, ricerca ospiti, prenotazioni e coda clienti a sistemi esterni, ad esempio un agente vocale che risponde al telefono del locale.
+L'API v1 di Gestione Sala espone locali, disponibilità, prenotazioni, lista d'attesa, ospiti, eventi, report, webhook e import a sistemi esterni: agenti vocali, CRM, widget di prenotazione, strumenti di analisi.
 
 ## Base URL
 
@@ -22,7 +22,7 @@ Tutte le richieste usano HTTPS.
 | Body di richiesta e risposta | JSON, `Content-Type: application/json` |
 | Date (`serviceDate`) | `YYYY-MM-DD` |
 | Orari (`time`, `earliestTime`, `latestTime`) | `HH:MM`, nel fuso orario del locale |
-| Istanti (`startsAt`, `endsAt`) | ISO 8601 in UTC |
+| Istanti (`startsAt`, `endsAt`, `updatedAt`) | ISO 8601 in UTC |
 | Numeri di telefono in input | Qualsiasi formato; il server li normalizza in E.164 |
 | Numeri di telefono in output | E.164, ad esempio `+393391112233` |
 | ID | UUID |
@@ -31,26 +31,30 @@ Tutte le richieste usano HTTPS.
 
 La versione è parte del percorso: `/api/v1`. Non esiste un header di versione.
 
-## Endpoint
+## Risorse
 
-| Risorsa | Metodo | Percorso | Operazione |
-| --- | --- | --- | --- |
-| Disponibilità | `GET` | [`/availability`](/api/disponibilita/verifica) | Verifica la disponibilità per data, ora e coperti |
-| Ospiti | `GET` | [`/guests/lookup`](/api/ospiti/cerca) | Cerca un ospite per numero di telefono |
-| Prenotazioni | `POST` | [`/reservations`](/api/prenotazioni/crea) | Crea una prenotazione |
-| Prenotazioni | `PATCH` | [`/reservations/{id}`](/api/prenotazioni/aggiorna) | Aggiorna data, orario, coperti o note |
-| Prenotazioni | `DELETE` | [`/reservations/{id}`](/api/prenotazioni/annulla) | Annulla una prenotazione |
-| Coda clienti | `POST` | [`/waitlist`](/api/coda-clienti/aggiungi) | Aggiunge un ospite alla coda clienti |
+| Risorsa | Endpoint |
+| --- | --- |
+| Meta | `/me`, `/health`, `/openapi.json` |
+| Locali e configurazione | `/venues`, turni, chiusure, sale, tavoli, piante, regole, `/service-tags` |
+| Disponibilità | `/availability`, `/availability/slots`, `/availability/days` |
+| Prenotazioni | `/reservations` |
+| Lista d'attesa | `/waitlist` |
+| Ospiti | `/guests` |
+| Eventi e report | `/events`, `/reports/period`, `/reports/eod`, `/exports/reservations` |
+| Webhook | `/webhook-deliveries`, `/webhook-endpoints`. Vedi [Webhook](/api/webhook) |
+| Import | `/imports/guests`, `/imports/reservations` |
 
-Ogni endpoint ha una pagina con parametri, risposte e playground nella barra laterale. Il [riferimento completo](/api/riferimento-completo) riporta tutti gli endpoint in una sola pagina. La specifica OpenAPI 3.1 è in [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml).
+Ogni endpoint ha una pagina con parametri, risposte e playground nella barra laterale. Il [riferimento completo](/api/riferimento-completo) riporta tutti gli endpoint in una sola pagina. La specifica OpenAPI 3.1 è servita anche dall'API: `GET /openapi.json`.
 
 ## Comportamento generale
 
-- **Permessi.** La chiave API identifica un'organizzazione e un membro di quell'organizzazione. Ogni richiesta ha gli stessi permessi e la stessa visibilità sui locali di quel membro nell'app. Vedi [Autenticazione](/api/autenticazione).
+- **Permessi.** Ogni endpoint richiede uno scope; la chiave vede solo i locali a cui è assegnata. Vedi [Autenticazione](/api/autenticazione).
 - **Esiti negativi con `200`.** `GET /availability` senza disponibilità risponde `200` con `available: false`, `reason` e `alternatives`. `GET /guests/lookup` senza corrispondenza risponde `200` con `found: false`.
-- **Tavolo non esposto.** L'API non accetta e non restituisce il tavolo. `tableAssigned` indica se un tavolo è assegnato. Se una modifica lascia la prenotazione senza tavolo compatibile, la prenotazione resta valida con `needsAttention: true`.
+- **Elenchi.** Gli elenchi restituiscono `{ "data", "nextCursor" }`. Vedi [Paginazione](/api/paginazione).
 - **Annullamento non distruttivo.** `DELETE /reservations/{id}` imposta `status: "cancelled"`. La prenotazione non viene eliminata.
-- **Errori.** Tutti gli errori hanno la forma `{ "error": { "code", "message", "details" } }`. Vedi [Errori](/api/errori).
+- **Errori.** Tutti gli errori hanno la forma `{ "error": { "code", "message", "details", "requestId" } }`. Vedi [Errori](/api/errori).
+- **Identificativo della richiesta.** Ogni risposta porta `X-Request-Id`.
 
 ## Esempio: flusso di prenotazione
 
@@ -85,6 +89,12 @@ curl -s -X POST "https://app.gestionesala.com/api/v1/reservations" \
     Header `Idempotency-Key` sulle creazioni.
   </Card>
   <Card title="Limiti di richiesta" icon="gauge" href="/api/limiti">
-    Richieste al minuto per chiave.
+    Richieste al minuto, header `X-RateLimit-*`.
+  </Card>
+  <Card title="Paginazione" icon="list" href="/api/paginazione">
+    Elenchi a cursore e sincronizzazione incrementale.
+  </Card>
+  <Card title="Webhook" icon="webhook" href="/api/webhook">
+    Busta, eventi, firma, ritentativi.
   </Card>
 </CardGroup>

@@ -15,9 +15,14 @@ Idempotency-Key: chiamata-8f2a-prenota
 | Endpoint | Operazione |
 | --- | --- |
 | `POST /reservations` | Crea una prenotazione |
-| `POST /waitlist` | Aggiunge un ospite alla coda clienti |
+| `POST /waitlist` | Aggiunge un ospite alla lista d'attesa |
+| `POST /waitlist/{id}/convert` | Converte una voce in prenotazione |
+| `POST /guests` | Crea o aggiorna un ospite |
+| `POST /imports/guests`, `POST /imports/reservations` | Avvia un import |
+| `POST /webhook-deliveries/{id}/redeliver` | Rispedisce una consegna |
+| `POST /webhook-endpoints/{id}/rotate-secret` | Ruota il segreto di firma |
 
-L'header è facoltativo. Senza header, ogni richiesta crea una nuova risorsa. Gli altri endpoint ignorano l'header.
+L'header è facoltativo. Senza header, ogni richiesta viene eseguita. Gli altri endpoint ignorano l'header.
 
 ## Comportamento
 
@@ -26,10 +31,10 @@ L'header è facoltativo. Senza header, ogni richiesta crea una nuova risorsa. Gl
 | Prima richiesta con la chiave | `201` con la risorsa creata |
 | Stessa chiave e stessa operazione, prima richiesta completata | `200` con la risorsa creata dalla prima richiesta. Nessuna nuova risorsa |
 | Stessa chiave, prima richiesta ancora in corso | `409 idempotency_in_progress`. Ripetere dopo qualche secondo con la stessa chiave |
-| Stessa chiave usata per un'altra operazione | `422 idempotency_key_reused`, con l'operazione originale in `details.operation` |
+| Stessa chiave con un'altra operazione (metodo e percorso, id compresi), un altro corpo o un'altra chiave API | `422 idempotency_key_reused`. `details.operation` indica l'operazione originale; `details.reason` vale `different_body` o `other_api_key` |
 | Prima richiesta fallita con errore | La chiave viene rilasciata. Una nuova richiesta con la stessa chiave viene eseguita da capo |
 
-La chiave è univoca per organizzazione. Organizzazioni diverse possono usare la stessa stringa senza interferenze.
+La chiave è legata alla chiave API, all'operazione e al corpo della richiesta. Organizzazioni diverse possono usare la stessa stringa senza interferenze.
 
 ## Scelta della chiave
 

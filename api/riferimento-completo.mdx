@@ -9,535 +9,2180 @@ icon: "file-lines"
 Base URL: `https://app.gestionesala.com/api/v1`. Autenticazione: header `Authorization: Bearer gsk_...` su ogni richiesta.
 Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml).
 
-## Verifica la disponibilità
+## La chiave che sta chiamando
+
+`GET /me`
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `organization` | object | sì |  |
+| `organization.id` | string (uuid) | sì |  |
+| `organization.name` | string | sì |  |
+| `apiKey` | object | sì |  |
+| `apiKey.id` | string (uuid) | sì |  |
+| `apiKey.name` | string | sì |  |
+| `apiKey.scopes` | array | sì |  |
+| `apiKey.voiceAgent` | boolean | sì | La chiave dell'agente vocale |
+| `rateLimit` | object | sì |  |
+| `rateLimit.limit` | integer | sì | Richieste al minuto |
+| `rateLimit.remaining` | integer | sì |  |
+| `rateLimit.resetAt` | string (date-time) | sì | Quando la finestra riparte |
+| `livemode` | boolean | sì | Falso per le chiavi dell'organizzazione di prova (gsk_test_) |
+| `venues` | array | sì |  |
+| `venues[].id` | string (uuid) | sì |  |
+| `venues[].name` | string | sì |  |
+| `venues[].timezone` | string | sì | Fuso orario IANA |
+| `venues[].noShowToleranceMinutes` | integer | sì |  |
+| `venues[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+
+## Il servizio e il database rispondono
+
+`GET /health`
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `503` | unavailable |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `status` | string: `ok` | sì |  |
+| `time` | string (date-time) | sì | Istante ISO 8601 con fuso |
+
+## Questa specifica
+
+`GET /openapi.json`
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OpenAPI 3.1 |
+
+## I locali della chiave
+
+`GET /venues`
+
+Scope: `venues:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].name` | string | sì |  |
+| `data[].timezone` | string | sì | Fuso orario IANA |
+| `data[].noShowToleranceMinutes` | integer | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Un locale
+
+`GET /venues/{id}`
+
+Scope: `venues:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `venue` | object | sì |  |
+| `venue.id` | string (uuid) | sì |  |
+| `venue.name` | string | sì |  |
+| `venue.timezone` | string | sì | Fuso orario IANA |
+| `venue.noShowToleranceMinutes` | integer | sì |  |
+| `venue.updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+
+## I turni del locale
+
+`GET /venues/{id}/shifts`
+
+Scope: `venues:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].name` | string | sì |  |
+| `data[].openingTime` | string | sì | Ora locale del locale, HH:mm |
+| `data[].lastSeatingTime` | string | sì | Ora locale del locale, HH:mm |
+| `data[].closingTime` | string | sì | HH:mm; prima dell'apertura = sfora la mezzanotte |
+| `data[].weekdays` | array | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Le chiusure del locale
+
+`GET /venues/{id}/closures`
+
+Scope: `venues:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].weekday` | object | sì |  |
+| `data[].date` | object | sì |  |
+| `data[].reason` | object | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Le sale del locale
+
+`GET /venues/{id}/areas`
+
+Scope: `floor:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].name` | string | sì |  |
+| `data[].icon` | string | sì |  |
+| `data[].position` | integer | sì |  |
+| `data[].widthCm` | integer | sì |  |
+| `data[].heightCm` | integer | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## I tavoli della pianta attiva
+
+`GET /venues/{id}/tables`
+
+Scope: `floor:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].floorPlanId` | string (uuid) | sì |  |
+| `data[].areaId` | string (uuid) | sì |  |
+| `data[].name` | string | sì |  |
+| `data[].shape` | string: `square`, `rectangle`, `round`, `oval` | sì |  |
+| `data[].minSeats` | integer | sì |  |
+| `data[].maxSeats` | integer | sì |  |
+| `data[].isBlocked` | boolean | sì |  |
+| `data[].combinationIds` | array | sì | Le unioni di cui fa parte |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Le piante del locale
+
+`GET /venues/{id}/floor-plans`
+
+Scope: `floor:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].name` | string | sì |  |
+| `data[].isActive` | boolean | sì |  |
+| `data[].version` | integer | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Una pianta intera
+
+`GET /venues/{id}/floor-plans/{planId}`
+
+Scope: `floor:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `planId` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `floorPlan` | object | sì |  |
+| `floorPlan.id` | string (uuid) | sì |  |
+| `floorPlan.name` | string | sì |  |
+| `floorPlan.isActive` | boolean | sì |  |
+| `floorPlan.version` | integer | sì |  |
+| `floorPlan.updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `floorPlan.areas` | array | sì |  |
+| `floorPlan.areas[].id` | string (uuid) | sì |  |
+| `floorPlan.areas[].name` | string | sì |  |
+| `floorPlan.areas[].widthCm` | integer | sì |  |
+| `floorPlan.areas[].heightCm` | integer | sì |  |
+| `floorPlan.tables` | array | sì |  |
+| `floorPlan.tables[].id` | string (uuid) | sì |  |
+| `floorPlan.tables[].areaId` | string (uuid) | sì |  |
+| `floorPlan.tables[].name` | string | sì |  |
+| `floorPlan.tables[].shape` | string: `square`, `rectangle`, `round`, `oval` | sì |  |
+| `floorPlan.tables[].minSeats` | integer | sì |  |
+| `floorPlan.tables[].maxSeats` | integer | sì |  |
+| `floorPlan.tables[].positionXCm` | integer | sì |  |
+| `floorPlan.tables[].positionYCm` | integer | sì |  |
+| `floorPlan.tables[].widthCm` | integer | sì | Ingombro gia' ruotato |
+| `floorPlan.tables[].heightCm` | integer | sì | Ingombro gia' ruotato |
+| `floorPlan.tables[].rotationDegrees` | integer | sì |  |
+| `floorPlan.tables[].isBlocked` | boolean | sì |  |
+| `floorPlan.combinations` | array | sì |  |
+| `floorPlan.combinations[].id` | string (uuid) | sì |  |
+| `floorPlan.combinations[].tableIds` | array | sì |  |
+
+## La sala adesso
+
+`GET /venues/{id}/floor`
+
+Scope: `floor:read` e `reservations:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì |  |
+| `timezone` | string | sì | Fuso orario IANA |
+| `serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `now` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `currentShift` | object | sì |  |
+| `nextShift` | object | sì |  |
+| `floorPlanId` | object | sì |  |
+| `tables` | array | sì |  |
+| `tables[].id` | string (uuid) | sì |  |
+| `tables[].areaId` | string (uuid) | sì |  |
+| `tables[].name` | string | sì |  |
+| `tables[].minSeats` | integer | sì |  |
+| `tables[].maxSeats` | integer | sì |  |
+| `tables[].state` | string: `free`, `expected`, `late`, `arrived`, `seated`, `overstaying`, `blocked` | sì |  |
+| `tables[].reservationId` | object | sì |  |
+| `reservations` | array | sì |  |
+| `reservations[].id` | string (uuid) | sì |  |
+| `reservations[].venueId` | string (uuid) | sì |  |
+| `reservations[].serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `reservations[].time` | string | sì | Ora locale del locale, HH:mm |
+| `reservations[].startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservations[].endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservations[].partySize` | integer | sì |  |
+| `reservations[].status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì |  |
+| `reservations[].tableAssigned` | boolean | sì |  |
+| `reservations[].needsAttention` | boolean | sì | Valida, ma da sistemare in sala |
+| `reservations[].notes` | object | sì |  |
+| `reservations[].source` | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | sì |  |
+| `reservations[].sourceDetail` | object | sì |  |
+| `reservations[].externalRef` | object | sì |  |
+| `reservations[].guestId` | object | sì |  |
+| `reservations[].updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `reservations[].guest` | object | sì |  |
+| `reservations[].guestDetails` | object | no |  |
+| `reservations[].table` | object | no |  |
+
+## Quanto resta seduto un tavolo, per coperti
+
+`GET /venues/{id}/turn-time-rules`
+
+Scope: `venues:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].shiftId` | object | sì |  |
+| `data[].minPartySize` | integer | sì |  |
+| `data[].maxPartySize` | object | sì |  |
+| `data[].turnTimeMinutes` | integer | sì |  |
+| `data[].bufferMinutes` | integer | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Il ritmo degli arrivi
+
+`GET /venues/{id}/pacing-rules`
+
+Scope: `venues:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].shiftId` | object | sì |  |
+| `data[].isEnabled` | boolean | sì |  |
+| `data[].maxCovers` | integer | sì |  |
+| `data[].windowMinutes` | integer | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Il catalogo dei tag di servizio
+
+`GET /service-tags`
+
+Scope: `guests:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].name` | string | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## C'e' posto a quell'ora per quei coperti
 
 `GET /availability`
 
-Pagina con playground: [/api/disponibilita/verifica](/api/disponibilita/verifica)
-
-Calcola se il locale può accogliere `partySize` persone all'orario `time` del giorno `serviceDate`, con lo stesso motore di disponibilità usato dall'app. La richiesta non crea e non blocca nulla: una risposta con `available: true` non riserva il posto.
-
-Se la richiesta non è soddisfacibile, la risposta è `200` con `available: false`, il motivo in `reason` e gli orari alternativi più vicini nello stesso turno in `alternatives` (anche vuoto).
+Scope: `reservations:read`
 
 ### Parametri
 
 | Nome | Posizione | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- | --- |
-| `venueId` | query | string (uuid) | sì | ID del locale. |
-| `serviceDate` | query | string (date) | sì | Giorno di servizio, formato `YYYY-MM-DD`. |
-| `time` | query | string | sì | Orario richiesto, formato `HH:MM`, nel fuso orario del locale. |
-| `partySize` | query | integer | sì | Numero di coperti. Intero maggiore di zero. |
+| `venueId` | query | string (uuid) | sì |  |
+| `serviceDate` | query | string (date) | sì |  |
+| `time` | query | string | sì |  |
+| `partySize` | query | integer | sì |  |
 
 ### Risposte
 
 | Status | Descrizione |
 | --- | --- |
-| `200` | Esito della verifica. `available: true` con l'orario trovato, oppure `available: false` con `reason` e `alternatives`. |
-| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
-| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
-| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
-| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
-| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
-| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
 
 ### Campi della risposta
 
-**Disponibile (`available: true`)**
-
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
-| `venueId` | string (uuid) | sì | ID del locale. |
-| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `partySize` | integer | sì | Numero di coperti richiesto. |
-| `available` | boolean: `true` | sì | Disponibilità trovata. |
-| `time` | string | sì | Orario trovato, `HH:MM` nel fuso del locale. |
-| `startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
-| `endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
-| `turnTimeMinutes` | integer | no | Durata stimata di occupazione del tavolo, in minuti. |
-| `seats` | integer | sì | Capienza massima del tavolo o dell'unione di tavoli individuata. |
-| `overflowsShift` | boolean | no | `true` se la durata supera la fine del turno (sforamento). |
-| `alternatives` | array | sì | Sempre vuoto quando `available` è `true`. |
-| `alternatives[].time` | string | no | Orario, `HH:MM` nel fuso del locale. |
-| `alternatives[].startsAt` | string (date-time) | no | Inizio, ISO 8601 UTC. |
-| `alternatives[].endsAt` | string (date-time) | no | Fine stimata, ISO 8601 UTC. |
-| `alternatives[].turnTimeMinutes` | integer | no | Durata stimata, in minuti. |
-| `alternatives[].seats` | integer | no | Capienza massima del tavolo o dell'unione di tavoli. |
-| `alternatives[].overflowsShift` | boolean | no | `true` se la durata supera la fine del turno. |
+| `venueId` | string (uuid) | sì |  |
+| `serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `partySize` | integer | sì |  |
+| `timezone` | string | sì | Fuso IANA del locale |
+| `available` | boolean | sì |  |
+| `reason` | string | no | Perche' no, se non c'e' posto |
+| `alternatives` | array | sì |  |
+| `alternatives[].time` | string | sì | Ora locale del locale, HH:mm |
+| `alternatives[].startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `alternatives[].endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `alternatives[].turnTimeMinutes` | integer | sì |  |
+| `alternatives[].seats` | integer | sì |  |
+| `alternatives[].overflowsShift` | boolean | sì |  |
 
-**Non disponibile (`available: false`)**
+## Tutti gli orari prenotabili del giorno
 
-| Campo | Tipo | Sempre presente | Descrizione |
-| --- | --- | --- | --- |
-| `venueId` | string (uuid) | sì | ID del locale. |
-| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `partySize` | integer | sì | Numero di coperti richiesto. |
-| `available` | boolean: `false` | sì | Nessuna disponibilità all'orario richiesto. |
-| `reason` | string: `closed`, `no_shift`, `after_last_seating`, `no_turn_time_rule`, `no_table`, `pacing_full` | sì | Motivo dell'indisponibilità. `closed`: locale chiuso nel giorno richiesto. `no_shift`: nessun turno all'orario richiesto. `after_last_seating`: orario successivo all'ultimo ingresso del turno. `no_turn_time_rule`: nessuna regola di durata per quel numero di coperti. `no_table`: nessun tavolo libero con capienza compatibile. `pacing_full`: limite di coperti della fascia oraria raggiunto. |
-| `alternatives` | array | sì | Orari alternativi più vicini nello stesso turno. Può essere vuoto. |
-| `alternatives[].time` | string | no | Orario, `HH:MM` nel fuso del locale. |
-| `alternatives[].startsAt` | string (date-time) | no | Inizio, ISO 8601 UTC. |
-| `alternatives[].endsAt` | string (date-time) | no | Fine stimata, ISO 8601 UTC. |
-| `alternatives[].turnTimeMinutes` | integer | no | Durata stimata, in minuti. |
-| `alternatives[].seats` | integer | no | Capienza massima del tavolo o dell'unione di tavoli. |
-| `alternatives[].overflowsShift` | boolean | no | `true` se la durata supera la fine del turno. |
+`GET /availability/slots`
 
-```json Esempio di risposta
-{
-  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-  "serviceDate": "2026-09-26",
-  "partySize": 4,
-  "available": true,
-  "time": "20:00",
-  "startsAt": "2026-09-26T18:00:00.000Z",
-  "endsAt": "2026-09-26T20:00:00.000Z",
-  "turnTimeMinutes": 120,
-  "seats": 4,
-  "overflowsShift": false,
-  "alternatives": []
-}
-```
-
-```json Esempio di risposta
-{
-  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-  "serviceDate": "2026-09-26",
-  "partySize": 4,
-  "available": false,
-  "reason": "no_table",
-  "alternatives": [
-    {
-      "time": "21:00",
-      "startsAt": "2026-09-26T19:00:00.000Z",
-      "endsAt": "2026-09-26T21:00:00.000Z",
-      "turnTimeMinutes": 120,
-      "seats": 4,
-      "overflowsShift": false
-    }
-  ]
-}
-```
-
-## Cerca un ospite per numero di telefono
-
-`GET /guests/lookup`
-
-Pagina con playground: [/api/ospiti/cerca](/api/ospiti/cerca)
-
-Normalizza `phone` in formato E.164 e cerca l'ospite con quel numero tra i contatti dell'organizzazione. I contatti sono condivisi tra tutti i locali dell'organizzazione.
-
-Se nessun ospite ha quel numero, la risposta è `200` con `found: false` e il numero normalizzato in `phone`.
+Scope: `reservations:read`. Ogni orario, a passi di 15 minuti dall'apertura del turno, e' uno in cui una prenotazione passerebbe adesso.
 
 ### Parametri
 
 | Nome | Posizione | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- | --- |
-| `phone` | query | string | sì | Numero di telefono in qualsiasi formato. Il server lo normalizza in E.164. Un numero non normalizzabile restituisce `400` con `details.field: "phone"`. |
+| `venueId` | query | string (uuid) | sì |  |
+| `serviceDate` | query | string (date) | sì |  |
+| `partySize` | query | integer | sì |  |
 
 ### Risposte
 
 | Status | Descrizione |
 | --- | --- |
-| `200` | Esito della ricerca. `found: true` con l'oggetto `guest`, oppure `found: false`. |
-| `400` | `invalid_request`: numero di telefono non normalizzabile. `details.field` vale `phone`. |
-| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
-| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
-| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
 
 ### Campi della risposta
 
-**Ospite trovato (`found: true`)**
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì |  |
+| `serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `partySize` | integer | sì |  |
+| `timezone` | string | sì | Fuso IANA del locale |
+| `data` | array | sì |  |
+| `data[].time` | string | sì | Ora locale del locale, HH:mm |
+| `data[].startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].turnTimeMinutes` | integer | sì |  |
+| `data[].seats` | integer | sì |  |
+| `data[].overflowsShift` | boolean | sì |  |
+| `nextCursor` | object | sì |  |
+
+## Quali giorni hanno posto in un intervallo
+
+`GET /availability/days`
+
+Scope: `reservations:read`. Al massimo 62 giorni, estremi compresi.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `venueId` | query | string (uuid) | sì |  |
+| `from` | query | string (date) | sì |  |
+| `to` | query | string (date) | sì |  |
+| `partySize` | query | integer | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
 
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
-| `found` | boolean: `true` | sì | Ospite trovato. |
-| `guest` | object | sì |  |
-| `guest.id` | string (uuid) | sì | ID dell'ospite. |
-| `guest.phone` | string | sì | Numero in formato E.164. |
-| `guest.name` | string \| null | sì | Nome dell'ospite. |
-| `guest.allergies` | string \| null | sì | Allergie registrate (allergeni di legge). |
-| `guest.notes` | string \| null | sì | Note sull'ospite. |
-| `guest.visitCount` | integer | sì | Numero di visite registrate. |
-| `guest.noShowCount` | integer | sì | Numero di mancate presentazioni. |
+| `venueId` | string (uuid) | sì |  |
+| `from` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `to` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `partySize` | integer | sì |  |
+| `timezone` | string | sì | Fuso IANA del locale |
+| `data` | array | sì |  |
+| `data[].serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `data[].available` | boolean | sì |  |
+| `data[].slotCount` | integer | sì | Quanti orari di /availability/slots |
+| `nextCursor` | object | sì |  |
 
-**Ospite non trovato (`found: false`)**
+## Le prenotazioni, a pagine col cursore
+
+`GET /reservations`
+
+Scope: `reservations:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `venueId` | query | string (uuid) | no | Solo questo locale |
+| `serviceDate` | query | string (date) | no | Un giorno di servizio, in alternativa a from/to |
+| `from` | query | string (date) | no | Dal giorno di servizio (compreso) |
+| `to` | query | string (date) | no | Al giorno di servizio (compreso) |
+| `status` | query | array | no | Uno o piu' stati |
+| `guestId` | query | string (uuid) | no | Solo questo ospite |
+| `source` | query | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | no | Solo questa origine |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+| `externalRef` | query | string | no | Solo quella col tuo identificativo |
+| `expand` | query | array | no | guest aggiunge guestDetails (serve anche guests:read), table aggiunge table |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
 
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
-| `found` | boolean: `false` | sì | Nessun ospite con quel numero. |
-| `phone` | string | sì | Numero cercato, normalizzato in E.164. |
-
-```json Esempio di risposta
-{
-  "found": true,
-  "guest": {
-    "id": "c1e2c3d4-0000-4000-8000-000000000002",
-    "phone": "+393391112233",
-    "name": "Mario Rossi",
-    "allergies": null,
-    "notes": null,
-    "visitCount": 3,
-    "noShowCount": 0
-  }
-}
-```
-
-```json Esempio di risposta
-{
-  "found": false,
-  "phone": "+393391112233"
-}
-```
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].venueId` | string (uuid) | sì |  |
+| `data[].serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `data[].time` | string | sì | Ora locale del locale, HH:mm |
+| `data[].startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].partySize` | integer | sì |  |
+| `data[].status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì |  |
+| `data[].tableAssigned` | boolean | sì |  |
+| `data[].needsAttention` | boolean | sì | Valida, ma da sistemare in sala |
+| `data[].notes` | object | sì |  |
+| `data[].source` | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | sì |  |
+| `data[].sourceDetail` | object | sì |  |
+| `data[].externalRef` | object | sì |  |
+| `data[].guestId` | object | sì |  |
+| `data[].updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `data[].guest` | object | sì |  |
+| `data[].guestDetails` | object | no |  |
+| `data[].table` | object | no |  |
+| `nextCursor` | object | sì |  |
 
 ## Crea una prenotazione
 
 `POST /reservations`
 
-Pagina con playground: [/api/prenotazioni/crea](/api/prenotazioni/crea)
-
-Crea una prenotazione con origine `voice_agent`. Il server verifica la disponibilità e assegna il tavolo con la capienza più adatta; il tavolo assegnato non viene restituito.
-
-Se è presente `phone`, la prenotazione è associata all'ospite con quel numero. Se l'ospite non esiste, viene creato con `guestName` come nome. Se l'ospite esiste, `guestName` è ignorato. Senza `phone` la prenotazione non ha ospite associato.
-
-Se non c'è disponibilità, la risposta è `409 no_availability` con `details.reason` e `details.alternatives`, con gli stessi valori di `GET /availability`.
-
-Supporta l'header `Idempotency-Key`: una richiesta ripetuta con la stessa chiave restituisce `200` con la prenotazione creata dalla prima richiesta.
+Scope: `reservations:write`
 
 ### Parametri
 
 | Nome | Posizione | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- | --- |
-| `Idempotency-Key` | header | string | no | Stringa scelta dal client, univoca per organizzazione. Una richiesta ripetuta con la stessa chiave sulla stessa operazione restituisce `200` con la risorsa creata dalla prima. Se la prima richiesta è ancora in corso: `409 idempotency_in_progress`. Se la chiave è già stata usata su un'altra operazione: `422 idempotency_key_reused`. Senza header ogni richiesta crea una nuova risorsa. |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
 
 ### Body (JSON)
 
 | Campo | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- |
-| `venueId` | string (uuid) | sì | ID del locale. |
-| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
-| `partySize` | integer | sì | Numero di coperti. Intero maggiore di zero. |
-| `phone` | string | no | Numero dell'ospite in qualsiasi formato, normalizzato in E.164. Facoltativo: se assente, la prenotazione non ha ospite associato. |
-| `guestName` | string | no | Nome usato solo se l'ospite con `phone` non esiste e viene creato. |
-| `notes` | string \| null | no | Note della prenotazione. |
-
-```json Esempio di body
-{
-  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-  "serviceDate": "2026-09-26",
-  "time": "20:00",
-  "partySize": 4,
-  "phone": "339 111 22 33",
-  "guestName": "Mario Rossi",
-  "notes": "compleanno"
-}
-```
+| `venueId` | string (uuid) | sì |  |
+| `serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `time` | string | sì | Ora locale del locale, HH:mm |
+| `partySize` | integer | sì |  |
+| `phone` | string | no | Telefono dell'ospite: lo riconosce o lo crea |
+| `guestName` | string | no |  |
+| `email` | string (email) | no | Solo con phone; riempie l'ospite se non l'ha gia' |
+| `firstName` | string | no | Solo con phone; riempie l'ospite se non l'ha gia' |
+| `lastName` | string | no | Solo con phone; riempie l'ospite se non l'ha gia' |
+| `serviceTags` | array | no | Solo con phone: si aggiungono all'ospite; un nome fuori catalogo e' un 400 |
+| `notes` | string | no |  |
+| `channel` | string | no | Da dove arriva, es. sito o Google: finisce in sourceDetail |
+| `externalRef` | string | no | Il tuo identificativo, unico nella tua organizzazione |
 
 ### Risposte
 
 | Status | Descrizione |
 | --- | --- |
-| `201` | Prenotazione creata. |
-| `200` | Richiesta ripetuta con una `Idempotency-Key` già completata. Restituisce la prenotazione creata dalla prima richiesta; non ne crea una nuova. |
-| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
-| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
-| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
-| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
-| `409` | `no_availability`: nessuna disponibilità, con `details.reason` e `details.alternatives`. `conflict`: conflitto con una modifica concorrente. `idempotency_in_progress`: una richiesta con la stessa `Idempotency-Key` è ancora in corso. |
-| `422` | `idempotency_key_reused`: la `Idempotency-Key` è già stata usata per un'altra operazione. `details.operation` indica quale. |
-| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
-| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+| `200` | Gia' creata con la stessa Idempotency-Key |
+| `201` | Creata (dalla chiave pubblica del widget: WidgetReservation) |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | no_availability, conflict, idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
 
 ### Campi della risposta
 
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
 | `reservation` | object | sì |  |
-| `reservation.id` | string (uuid) | sì | ID della prenotazione. |
-| `reservation.venueId` | string (uuid) | sì | ID del locale. |
-| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `reservation.time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
-| `reservation.startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
-| `reservation.endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
-| `reservation.partySize` | integer | sì | Numero di coperti. |
-| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì | Stato della prenotazione. |
-| `reservation.tableAssigned` | boolean | sì | `true` se è assegnato un tavolo o un'unione di tavoli. Il tavolo non viene esposto. |
-| `reservation.needsAttention` | boolean | sì | `true` se la prenotazione è "da sistemare": valida, ma senza un tavolo compatibile dopo una modifica. Richiede un intervento in sala. |
-| `reservation.notes` | string \| null | sì | Note della prenotazione. |
-| `reservation.guest` | object \| null | sì | Scheda di servizio dell'ospite, `null` se la prenotazione non ha ospite. |
-| `reservation.guest.name` | string \| null | no | Nome dell'ospite. |
-| `reservation.guest.allergies` | string \| null | no | Allergie registrate. |
 
-```json Esempio di risposta
-{
-  "reservation": {
-    "id": "d1e2c3d4-0000-4000-8000-000000000003",
-    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-    "serviceDate": "2026-09-26",
-    "time": "20:00",
-    "startsAt": "2026-09-26T18:00:00.000Z",
-    "endsAt": "2026-09-26T20:00:00.000Z",
-    "partySize": 4,
-    "status": "confirmed",
-    "tableAssigned": true,
-    "needsAttention": false,
-    "notes": "compleanno",
-    "guest": {
-      "name": "Mario Rossi",
-      "allergies": null
-    }
-  }
-}
-```
+## Una prenotazione
 
-## Aggiorna una prenotazione
+`GET /reservations/{id}`
+
+Scope: `reservations:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `expand` | query | array | no | guest aggiunge guestDetails (serve anche guests:read), table aggiunge table |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `reservation` | object | sì |  |
+| `reservation.id` | string (uuid) | sì |  |
+| `reservation.venueId` | string (uuid) | sì |  |
+| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `reservation.time` | string | sì | Ora locale del locale, HH:mm |
+| `reservation.startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.partySize` | integer | sì |  |
+| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì |  |
+| `reservation.tableAssigned` | boolean | sì |  |
+| `reservation.needsAttention` | boolean | sì | Valida, ma da sistemare in sala |
+| `reservation.notes` | object | sì |  |
+| `reservation.source` | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | sì |  |
+| `reservation.sourceDetail` | object | sì |  |
+| `reservation.externalRef` | object | sì |  |
+| `reservation.guestId` | object | sì |  |
+| `reservation.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `reservation.guest` | object | sì |  |
+| `reservation.guestDetails` | object | no |  |
+| `reservation.table` | object | no |  |
+
+## Conferma, sposta, cambia stato, tavolo o ospite
 
 `PATCH /reservations/{id}`
 
-Pagina con playground: [/api/prenotazioni/aggiorna](/api/prenotazioni/aggiorna)
-
-Aggiorna `serviceDate`, `time`, `partySize` o `notes`. Il body deve contenere almeno uno di questi campi; gli altri campi sono ignorati. Il tavolo non è modificabile tramite API.
-
-Se cambiano `serviceDate`, `time` o `partySize`, il server ricalcola l'assegnazione del tavolo. Se nessun tavolo è compatibile, la prenotazione resta valida: la risposta è `200` con `tableAssigned: false` e `needsAttention: true`.
+Scope: `reservations:write`. Gli stati della sala (arrived, seated, released, completed, no_show) e tableId/tableCombinationId chiedono anche `floor:write`. Si disdice con DELETE.
 
 ### Parametri
 
 | Nome | Posizione | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- | --- |
-| `id` | path | string (uuid) | sì | ID della prenotazione. |
+| `id` | path | string (uuid) | sì |  |
+| `If-Match` | header | string | no | L'updatedAt letto: la modifica passa solo se nessuno ha scritto dopo |
 
 ### Body (JSON)
 
-Almeno uno tra `serviceDate`, `time`, `partySize`, `notes`. Gli altri campi sono ignorati.
-
 | Campo | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- |
-| `serviceDate` | string (date) | no | Nuovo giorno di servizio, `YYYY-MM-DD`. |
-| `time` | string | no | Nuovo orario, `HH:MM` nel fuso del locale. |
-| `partySize` | integer | no | Nuovo numero di coperti. Intero maggiore di zero. |
-| `notes` | string \| null | no | Nuove note. `null` le cancella. |
-
-```json Esempio di body
-{
-  "time": "21:00",
-  "partySize": 2
-}
-```
+| `serviceDate` | string (date) | no | Giorno di servizio, YYYY-MM-DD |
+| `time` | string | no | Ora locale del locale, HH:mm |
+| `partySize` | integer | no |  |
+| `notes` | object | no |  |
+| `status` | string: `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show` | no | Solo le transizioni ammesse; lo stesso stato non cambia niente |
+| `tableId` | object | no |  |
+| `tableCombinationId` | object | no |  |
+| `guestId` | object | no |  |
+| `externalRef` | object | no |  |
+| `version` | string (date-time) | no | In alternativa a If-Match: l'updatedAt letto |
 
 ### Risposte
 
 | Status | Descrizione |
 | --- | --- |
-| `200` | Prenotazione aggiornata. |
-| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
-| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
-| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
-| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
-| `409` | `conflict`: la prenotazione è stata modificata da un'altra richiesta o è in uso. Rileggere la prenotazione prima di ripetere la richiesta. |
-| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
-| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | no_availability, conflict |
+| `429` | rate_limited |
 
 ### Campi della risposta
 
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
 | `reservation` | object | sì |  |
-| `reservation.id` | string (uuid) | sì | ID della prenotazione. |
-| `reservation.venueId` | string (uuid) | sì | ID del locale. |
-| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `reservation.time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
-| `reservation.startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
-| `reservation.endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
-| `reservation.partySize` | integer | sì | Numero di coperti. |
-| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì | Stato della prenotazione. |
-| `reservation.tableAssigned` | boolean | sì | `true` se è assegnato un tavolo o un'unione di tavoli. Il tavolo non viene esposto. |
-| `reservation.needsAttention` | boolean | sì | `true` se la prenotazione è "da sistemare": valida, ma senza un tavolo compatibile dopo una modifica. Richiede un intervento in sala. |
-| `reservation.notes` | string \| null | sì | Note della prenotazione. |
-| `reservation.guest` | object \| null | sì | Scheda di servizio dell'ospite, `null` se la prenotazione non ha ospite. |
-| `reservation.guest.name` | string \| null | no | Nome dell'ospite. |
-| `reservation.guest.allergies` | string \| null | no | Allergie registrate. |
+| `reservation.id` | string (uuid) | sì |  |
+| `reservation.venueId` | string (uuid) | sì |  |
+| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `reservation.time` | string | sì | Ora locale del locale, HH:mm |
+| `reservation.startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.partySize` | integer | sì |  |
+| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì |  |
+| `reservation.tableAssigned` | boolean | sì |  |
+| `reservation.needsAttention` | boolean | sì | Valida, ma da sistemare in sala |
+| `reservation.notes` | object | sì |  |
+| `reservation.source` | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | sì |  |
+| `reservation.sourceDetail` | object | sì |  |
+| `reservation.externalRef` | object | sì |  |
+| `reservation.guestId` | object | sì |  |
+| `reservation.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `reservation.guest` | object | sì |  |
+| `reservation.guestDetails` | object | no |  |
+| `reservation.table` | object | no |  |
 
-```json Esempio di risposta
-{
-  "reservation": {
-    "id": "d1e2c3d4-0000-4000-8000-000000000003",
-    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-    "serviceDate": "2026-09-26",
-    "time": "21:00",
-    "startsAt": "2026-09-26T19:00:00.000Z",
-    "endsAt": "2026-09-26T20:30:00.000Z",
-    "partySize": 2,
-    "status": "confirmed",
-    "tableAssigned": true,
-    "needsAttention": false,
-    "notes": "compleanno",
-    "guest": {
-      "name": "Mario Rossi",
-      "allergies": null
-    }
-  }
-}
-```
-
-## Annulla una prenotazione
+## Disdice: la prenotazione diventa cancelled
 
 `DELETE /reservations/{id}`
 
-Pagina con playground: [/api/prenotazioni/annulla](/api/prenotazioni/annulla)
-
-Imposta `status` a `cancelled`. La prenotazione non viene eliminata e resta leggibile nell'app.
-
-Effetto collaterale: il server avvia il richiamo del primo ospite idoneo nella coda clienti del locale per lo stesso giorno di servizio. Un errore del richiamo non modifica la risposta.
+Scope: `reservations:write`. Gia' cancelled: 200 con la prenotazione, nessun effetto. Da uno stato che non si disdice (seated, released, completed, no_show): 409 conflict con details.allowedTransitions.
 
 ### Parametri
 
 | Nome | Posizione | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- | --- |
-| `id` | path | string (uuid) | sì | ID della prenotazione. |
+| `id` | path | string (uuid) | sì |  |
 
 ### Risposte
 
 | Status | Descrizione |
 | --- | --- |
-| `200` | Prenotazione annullata, con `status` uguale a `cancelled`. |
-| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
-| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
-| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
-| `409` | `conflict`: la prenotazione è stata modificata da un'altra richiesta o è in uso. Rileggere la prenotazione prima di ripetere la richiesta. |
-| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
-| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | conflict |
+| `429` | rate_limited |
 
 ### Campi della risposta
 
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
 | `reservation` | object | sì |  |
-| `reservation.id` | string (uuid) | sì | ID della prenotazione. |
-| `reservation.venueId` | string (uuid) | sì | ID del locale. |
-| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `reservation.time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
-| `reservation.startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
-| `reservation.endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
-| `reservation.partySize` | integer | sì | Numero di coperti. |
-| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì | Stato della prenotazione. |
-| `reservation.tableAssigned` | boolean | sì | `true` se è assegnato un tavolo o un'unione di tavoli. Il tavolo non viene esposto. |
-| `reservation.needsAttention` | boolean | sì | `true` se la prenotazione è "da sistemare": valida, ma senza un tavolo compatibile dopo una modifica. Richiede un intervento in sala. |
-| `reservation.notes` | string \| null | sì | Note della prenotazione. |
-| `reservation.guest` | object \| null | sì | Scheda di servizio dell'ospite, `null` se la prenotazione non ha ospite. |
-| `reservation.guest.name` | string \| null | no | Nome dell'ospite. |
-| `reservation.guest.allergies` | string \| null | no | Allergie registrate. |
+| `reservation.id` | string (uuid) | sì |  |
+| `reservation.venueId` | string (uuid) | sì |  |
+| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `reservation.time` | string | sì | Ora locale del locale, HH:mm |
+| `reservation.startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.partySize` | integer | sì |  |
+| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì |  |
+| `reservation.tableAssigned` | boolean | sì |  |
+| `reservation.needsAttention` | boolean | sì | Valida, ma da sistemare in sala |
+| `reservation.notes` | object | sì |  |
+| `reservation.source` | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | sì |  |
+| `reservation.sourceDetail` | object | sì |  |
+| `reservation.externalRef` | object | sì |  |
+| `reservation.guestId` | object | sì |  |
+| `reservation.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `reservation.guest` | object | sì |  |
+| `reservation.guestDetails` | object | no |  |
+| `reservation.table` | object | no |  |
 
-```json Esempio di risposta
-{
-  "reservation": {
-    "id": "d1e2c3d4-0000-4000-8000-000000000003",
-    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-    "serviceDate": "2026-09-26",
-    "time": "21:00",
-    "startsAt": "2026-09-26T19:00:00.000Z",
-    "endsAt": "2026-09-26T20:30:00.000Z",
-    "partySize": 2,
-    "status": "cancelled",
-    "tableAssigned": true,
-    "needsAttention": false,
-    "notes": "compleanno",
-    "guest": {
-      "name": "Mario Rossi",
-      "allergies": null
-    }
-  }
-}
-```
+## Le voci della coda, a pagine col cursore
 
-## Aggiungi un ospite alla coda clienti
+`GET /waitlist`
 
-`POST /waitlist`
-
-Pagina con playground: [/api/coda-clienti/aggiungi](/api/coda-clienti/aggiungi)
-
-Inserisce un ospite nella coda clienti del locale per il giorno `serviceDate`, con la fascia oraria accettata dall'ospite (`earliestTime`-`latestTime`). L'ingresso nasce con `status: "waiting"`.
-
-`phone` è obbligatorio: l'ingresso è associato all'ospite con quel numero, creato con `guestName` come nome se non esiste.
-
-Supporta l'header `Idempotency-Key` con le stesse regole di `POST /reservations`.
+Scope: `waitlist:read`
 
 ### Parametri
 
 | Nome | Posizione | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- | --- |
-| `Idempotency-Key` | header | string | no | Stringa scelta dal client, univoca per organizzazione. Una richiesta ripetuta con la stessa chiave sulla stessa operazione restituisce `200` con la risorsa creata dalla prima. Se la prima richiesta è ancora in corso: `409 idempotency_in_progress`. Se la chiave è già stata usata su un'altra operazione: `422 idempotency_key_reused`. Senza header ogni richiesta crea una nuova risorsa. |
-
-### Body (JSON)
-
-| Campo | Tipo | Obbligatorio | Descrizione |
-| --- | --- | --- | --- |
-| `venueId` | string (uuid) | sì | ID del locale. |
-| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `partySize` | integer | sì | Numero di coperti. Intero maggiore di zero. |
-| `earliestTime` | string | sì | Inizio della fascia accettata, `HH:MM` nel fuso del locale. |
-| `latestTime` | string | sì | Fine della fascia accettata, `HH:MM` nel fuso del locale. |
-| `phone` | string | sì | Numero dell'ospite in qualsiasi formato, normalizzato in E.164. |
-| `guestName` | string | no | Nome usato solo se l'ospite con `phone` non esiste e viene creato. |
-
-```json Esempio di body
-{
-  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-  "serviceDate": "2026-09-26",
-  "partySize": 2,
-  "earliestTime": "20:00",
-  "latestTime": "21:30",
-  "phone": "+393391112233",
-  "guestName": "Mario Rossi"
-}
-```
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `venueId` | query | string (uuid) | no | Solo questo locale |
+| `serviceDate` | query | string (date) | no | Un giorno di servizio, in alternativa a from/to |
+| `from` | query | string (date) | no | Dal giorno di servizio (compreso) |
+| `to` | query | string (date) | no | Al giorno di servizio (compreso) |
+| `status` | query | array | no | Uno o piu' stati |
+| `guestId` | query | string (uuid) | no | Solo questo ospite |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
 
 ### Risposte
 
 | Status | Descrizione |
 | --- | --- |
-| `201` | Ingresso in coda clienti creato. |
-| `200` | Richiesta ripetuta con una `Idempotency-Key` già completata. Restituisce l'ingresso creato dalla prima richiesta. |
-| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
-| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
-| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
-| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
-| `409` | `idempotency_in_progress`: una richiesta con la stessa `Idempotency-Key` è ancora in corso. |
-| `422` | `idempotency_key_reused`: la `Idempotency-Key` è già stata usata per un'altra operazione. `details.operation` indica quale. |
-| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
-| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].venueId` | string (uuid) | sì |  |
+| `data[].serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `data[].partySize` | integer | sì |  |
+| `data[].earliestTime` | string | sì | Ora locale del locale, HH:mm |
+| `data[].latestTime` | string | sì | Ora locale del locale, HH:mm |
+| `data[].status` | string: `waiting`, `called`, `converted`, `cancelled` | sì |  |
+| `data[].guestId` | object | sì |  |
+| `data[].reservationId` | object | sì |  |
+| `data[].createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `data[].guest` | object | sì |  |
+| `nextCursor` | object | sì |  |
+
+## Mette un ospite in lista d'attesa
+
+`POST /waitlist`
+
+Scope: `waitlist:write`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì |  |
+| `serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `partySize` | integer | sì |  |
+| `earliestTime` | string | sì | Ora locale del locale, HH:mm |
+| `latestTime` | string | sì | Ora locale del locale, HH:mm |
+| `phone` | string | sì |  |
+| `guestName` | string | no |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Gia' creata con la stessa Idempotency-Key |
+| `201` | Creata |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
 
 ### Campi della risposta
 
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
 | `entry` | object | sì |  |
-| `entry.id` | string (uuid) | sì | ID dell'ingresso in coda clienti. |
-| `entry.venueId` | string (uuid) | sì | ID del locale. |
-| `entry.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
-| `entry.partySize` | integer | sì | Numero di coperti. |
-| `entry.earliestTime` | string | sì | Inizio della fascia, `HH:MM`. |
-| `entry.latestTime` | string | sì | Fine della fascia, `HH:MM`. |
-| `entry.status` | string | sì | Stato dell'ingresso. `waiting` alla creazione. |
-| `entry.guest` | object \| null | sì |  |
-| `entry.guest.name` | string \| null | no | Nome dell'ospite. |
-| `entry.guest.phone` | string | no | Numero in formato E.164. |
+| `entry.id` | string (uuid) | sì |  |
+| `entry.venueId` | string (uuid) | sì |  |
+| `entry.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `entry.partySize` | integer | sì |  |
+| `entry.earliestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.latestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.status` | string: `waiting`, `called`, `converted`, `cancelled` | sì |  |
+| `entry.guestId` | object | sì |  |
+| `entry.reservationId` | object | sì |  |
+| `entry.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `entry.guest` | object | sì |  |
 
-```json Esempio di risposta
-{
-  "entry": {
-    "id": "e1e2c3d4-0000-4000-8000-000000000004",
-    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
-    "serviceDate": "2026-09-26",
-    "partySize": 2,
-    "earliestTime": "20:00",
-    "latestTime": "21:30",
-    "status": "waiting",
-    "guest": {
-      "name": "Mario Rossi",
-      "phone": "+393391112233"
-    }
-  }
-}
-```
+## Una voce della coda
+
+`GET /waitlist/{id}`
+
+Scope: `waitlist:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `entry` | object | sì |  |
+| `entry.id` | string (uuid) | sì |  |
+| `entry.venueId` | string (uuid) | sì |  |
+| `entry.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `entry.partySize` | integer | sì |  |
+| `entry.earliestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.latestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.status` | string: `waiting`, `called`, `converted`, `cancelled` | sì |  |
+| `entry.guestId` | object | sì |  |
+| `entry.reservationId` | object | sì |  |
+| `entry.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `entry.guest` | object | sì |  |
+
+## Cambia coperti o fascia oraria
+
+`PATCH /waitlist/{id}`
+
+Scope: `waitlist:write`. Una voce gia' richiamata torna in attesa. Le voci convertite o tolte non si modificano (409).
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `If-Match` | header | string | no | L'updatedAt letto: la modifica passa solo se nessuno ha scritto dopo |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `partySize` | integer | no |  |
+| `earliestTime` | string | no | Ora locale del locale, HH:mm |
+| `latestTime` | string | no | Ora locale del locale, HH:mm |
+| `version` | string (date-time) | no | In alternativa a If-Match: l'updatedAt letto |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | conflict |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `entry` | object | sì |  |
+| `entry.id` | string (uuid) | sì |  |
+| `entry.venueId` | string (uuid) | sì |  |
+| `entry.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `entry.partySize` | integer | sì |  |
+| `entry.earliestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.latestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.status` | string: `waiting`, `called`, `converted`, `cancelled` | sì |  |
+| `entry.guestId` | object | sì |  |
+| `entry.reservationId` | object | sì |  |
+| `entry.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `entry.guest` | object | sì |  |
+
+## Toglie la voce dalla coda: diventa cancelled
+
+`DELETE /waitlist/{id}`
+
+Scope: `waitlist:write`. Ripetuto non cambia niente; una voce gia' convertita e' un 409. Fa partire l'evento waitlist_entry_cancelled.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | conflict |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `entry` | object | sì |  |
+| `entry.id` | string (uuid) | sì |  |
+| `entry.venueId` | string (uuid) | sì |  |
+| `entry.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `entry.partySize` | integer | sì |  |
+| `entry.earliestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.latestTime` | string | sì | Ora locale del locale, HH:mm |
+| `entry.status` | string: `waiting`, `called`, `converted`, `cancelled` | sì |  |
+| `entry.guestId` | object | sì |  |
+| `entry.reservationId` | object | sì |  |
+| `entry.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `entry.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `entry.guest` | object | sì |  |
+
+## La voce diventa una prenotazione
+
+`POST /waitlist/{id}/convert`
+
+Scope: `waitlist:write` e `reservations:write`. Stesso ospite e coperti; l'orario del richiamo se c'e' stato, altrimenti l'inizio della fascia. Una voce gia' convertita risponde 200 con la sua prenotazione.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Gia' convertita |
+| `201` | Convertita |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | no_availability, conflict, idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `reservation` | object | sì |  |
+| `reservation.id` | string (uuid) | sì |  |
+| `reservation.venueId` | string (uuid) | sì |  |
+| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `reservation.time` | string | sì | Ora locale del locale, HH:mm |
+| `reservation.startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `reservation.partySize` | integer | sì |  |
+| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì |  |
+| `reservation.tableAssigned` | boolean | sì |  |
+| `reservation.needsAttention` | boolean | sì | Valida, ma da sistemare in sala |
+| `reservation.notes` | object | sì |  |
+| `reservation.source` | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | sì |  |
+| `reservation.sourceDetail` | object | sì |  |
+| `reservation.externalRef` | object | sì |  |
+| `reservation.guestId` | object | sì |  |
+| `reservation.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `reservation.guest` | object | sì |  |
+| `reservation.guestDetails` | object | no |  |
+| `reservation.table` | object | no |  |
+
+## La rubrica, a pagine col cursore
+
+`GET /guests`
+
+Scope: `guests:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `q` | query | string | no | Nome, email o cifre del telefono (almeno 3, al massimo 200 caratteri; fino a 8 parole) |
+| `phone` | query | string | no | Un telefono, qualunque forma |
+| `email` | query | string | no | Un'email |
+| `externalRef` | query | string | no | Il tuo identificativo |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].phone` | string | sì | E.164 |
+| `data[].name` | object | sì |  |
+| `data[].firstName` | object | sì |  |
+| `data[].lastName` | object | sì |  |
+| `data[].email` | object | sì |  |
+| `data[].allergies` | object | sì |  |
+| `data[].allergens` | array | sì |  |
+| `data[].notes` | object | sì |  |
+| `data[].visitCount` | integer | sì |  |
+| `data[].noShowCount` | integer | sì |  |
+| `data[].cancelledCount` | integer | sì |  |
+| `data[].lastVisitAt` | object | sì |  |
+| `data[].consents` | object | sì |  |
+| `data[].campaignTags` | array | sì |  |
+| `data[].serviceTags` | array | sì |  |
+| `data[].externalRef` | object | sì |  |
+| `data[].createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+| `nextCursor` | object | sì |  |
+
+## Crea l'ospite, o aggiorna quello del telefono
+
+`POST /guests`
+
+Scope: `guests:write`. 201 se nasce, 200 se il telefono c'era gia' (i campi mandati si scrivono) o se la stessa Idempotency-Key ritrova la richiesta di prima.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `phone` | string | sì | Il telefono, qualunque forma: diventa E.164 |
+| `name` | object | no |  |
+| `firstName` | object | no |  |
+| `lastName` | object | no |  |
+| `email` | object | no |  |
+| `allergies` | object | no |  |
+| `notes` | object | no |  |
+| `externalRef` | object | no |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Aggiornato o ritrovato |
+| `201` | Creato |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `409` | conflict, idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `guest` | object | sì |  |
+| `guest.id` | string (uuid) | sì |  |
+| `guest.phone` | string | sì | E.164 |
+| `guest.name` | object | sì |  |
+| `guest.firstName` | object | sì |  |
+| `guest.lastName` | object | sì |  |
+| `guest.email` | object | sì |  |
+| `guest.allergies` | object | sì |  |
+| `guest.allergens` | array | sì |  |
+| `guest.notes` | object | sì |  |
+| `guest.visitCount` | integer | sì |  |
+| `guest.noShowCount` | integer | sì |  |
+| `guest.cancelledCount` | integer | sì |  |
+| `guest.lastVisitAt` | object | sì |  |
+| `guest.consents` | object | sì |  |
+| `guest.campaignTags` | array | sì |  |
+| `guest.serviceTags` | array | sì |  |
+| `guest.externalRef` | object | sì |  |
+| `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+
+## Cerca un ospite dal telefono
+
+`GET /guests/lookup`
+
+Scope: `guests:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `phone` | query | string | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `found` | object | sì |  |
+| `guest` | object | sì |  |
+| `guest.id` | string (uuid) | sì |  |
+| `guest.phone` | string | sì | E.164 |
+| `guest.name` | object | sì |  |
+| `guest.allergies` | object | sì |  |
+| `guest.notes` | object | sì |  |
+| `guest.visitCount` | integer | sì |  |
+| `guest.noShowCount` | integer | sì |  |
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `found` | object | sì |  |
+| `phone` | string | sì | E.164 |
+
+## La scheda di un ospite
+
+`GET /guests/{id}`
+
+Scope: `guests:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `guest` | object | sì |  |
+| `guest.id` | string (uuid) | sì |  |
+| `guest.phone` | string | sì | E.164 |
+| `guest.name` | object | sì |  |
+| `guest.firstName` | object | sì |  |
+| `guest.lastName` | object | sì |  |
+| `guest.email` | object | sì |  |
+| `guest.allergies` | object | sì |  |
+| `guest.allergens` | array | sì |  |
+| `guest.notes` | object | sì |  |
+| `guest.visitCount` | integer | sì |  |
+| `guest.noShowCount` | integer | sì |  |
+| `guest.cancelledCount` | integer | sì |  |
+| `guest.lastVisitAt` | object | sì |  |
+| `guest.consents` | object | sì |  |
+| `guest.campaignTags` | array | sì |  |
+| `guest.serviceTags` | array | sì |  |
+| `guest.externalRef` | object | sì |  |
+| `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+
+## Modifica la scheda, i consensi e i tag di campagna
+
+`PATCH /guests/{id}`
+
+Scope: `guests:write`. null o "" toglie un campo. consents e campaignTags sono di SQUADD quando e' collegato all'organizzazione: in quel caso 403.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `If-Match` | header | string | no | L'updatedAt letto: la modifica passa solo se nessuno ha scritto dopo |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `phone` | string | no | Il telefono nuovo, unico nell'organizzazione |
+| `name` | object | no |  |
+| `firstName` | object | no |  |
+| `lastName` | object | no |  |
+| `email` | object | no |  |
+| `allergies` | object | no |  |
+| `notes` | object | no |  |
+| `externalRef` | object | no |  |
+| `consents` | object | no | I consensi, sostituiti per intero |
+| `campaignTags` | array | no | I tag di campagna, sostituiti per intero |
+| `version` | string (date-time) | no | In alternativa a If-Match: l'updatedAt letto |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | conflict |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `guest` | object | sì |  |
+| `guest.id` | string (uuid) | sì |  |
+| `guest.phone` | string | sì | E.164 |
+| `guest.name` | object | sì |  |
+| `guest.firstName` | object | sì |  |
+| `guest.lastName` | object | sì |  |
+| `guest.email` | object | sì |  |
+| `guest.allergies` | object | sì |  |
+| `guest.allergens` | array | sì |  |
+| `guest.notes` | object | sì |  |
+| `guest.visitCount` | integer | sì |  |
+| `guest.noShowCount` | integer | sì |  |
+| `guest.cancelledCount` | integer | sì |  |
+| `guest.lastVisitAt` | object | sì |  |
+| `guest.consents` | object | sì |  |
+| `guest.campaignTags` | array | sì |  |
+| `guest.serviceTags` | array | sì |  |
+| `guest.externalRef` | object | sì |  |
+| `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+
+## Manda l'ospite nel Cestino (30 giorni, poi esce davvero)
+
+`DELETE /guests/{id}`
+
+Scope: `guests:write`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `204` | Nel Cestino |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+## Imposta i tag di servizio
+
+`PUT /guests/{id}/tags`
+
+Scope: `guests:write`. I nomi vengono dal catalogo (GET /service-tags); [] li toglie tutti.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `serviceTags` | array | sì | I nomi dei tag, dopo sono esattamente questi |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `guest` | object | sì |  |
+| `guest.id` | string (uuid) | sì |  |
+| `guest.phone` | string | sì | E.164 |
+| `guest.name` | object | sì |  |
+| `guest.firstName` | object | sì |  |
+| `guest.lastName` | object | sì |  |
+| `guest.email` | object | sì |  |
+| `guest.allergies` | object | sì |  |
+| `guest.allergens` | array | sì |  |
+| `guest.notes` | object | sì |  |
+| `guest.visitCount` | integer | sì |  |
+| `guest.noShowCount` | integer | sì |  |
+| `guest.cancelledCount` | integer | sì |  |
+| `guest.lastVisitAt` | object | sì |  |
+| `guest.consents` | object | sì |  |
+| `guest.campaignTags` | array | sì |  |
+| `guest.serviceTags` | array | sì |  |
+| `guest.externalRef` | object | sì |  |
+| `guest.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `guest.updatedAt` | string (date-time) | sì | Anche la versione, per If-Match |
+
+## La scheda di servizio: nome, allergie, tag
+
+`GET /guests/{id}/service-card`
+
+Scope: `guests:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `serviceCard` | object | sì |  |
+| `serviceCard.id` | string (uuid) | sì |  |
+| `serviceCard.name` | object | sì |  |
+| `serviceCard.allergies` | object | sì |  |
+| `serviceCard.allergens` | array | sì |  |
+| `serviceCard.serviceTags` | array | sì |  |
+
+## Lo storico degli eventi, nella busta del webhook
+
+`GET /events`
+
+Scope: `events:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `since` | query | string (date-time) | no | Solo gli eventi dopo questo istante |
+| `type` | query | array | no | Uno o piu' tipi |
+| `venueId` | query | string (uuid) | no | Solo questo locale |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì | L'evento: coincide con eventId |
+| `data[].eventId` | string (uuid) | sì | Lo stesso eventId del webhook |
+| `data[].type` | string: `reservation_created`, `reservation_confirmed`, `reservation_modified`, `reservation_cancelled`, `guest_arrived`, `guest_seated`, `table_released`, `reservation_late`, `reservation_no_show`, `meal_completed`, `waitlist_entry_created`, `compatible_table_freed`, `guest_profile_changed`, `waitlist_entry_cancelled`, `reservation_needs_attention` | sì |  |
+| `data[].createdAt` | string (date-time) | sì | Quando e' accaduto il fatto |
+| `data[].venueId` | string (uuid) | sì |  |
+| `data[].apiVersion` | string | sì |  |
+| `data[].data` | object | sì | In /events la fotografia del fatto, com'era quando e' accaduto (guest della prenotazione nullo); nel webhook la prenotazione di quando parte, e updatedAt dice quale e' piu' nuova. guest_profile_changed: in /events solo l'id dell'ospite, nel webhook la scheda intera. |
+| `nextCursor` | object | sì |  |
+
+## Il consuntivo di un periodo, un giorno per riga
+
+`GET /reports/period`
+
+Scope: `reports:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `venueId` | query | string (uuid) | sì | Il locale |
+| `from` | query | string (date) | sì | Primo giorno di servizio |
+| `to` | query | string (date) | sì | Ultimo giorno di servizio (al massimo 367 giorni) |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì |  |
+| `from` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `to` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `days` | array | sì |  |
+| `days[].serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `days[].covers` | integer | sì |  |
+| `days[].tablesTurned` | integer | sì |  |
+| `days[].noShows` | integer | sì |  |
+| `days[].waitlistRecovered` | integer | sì |  |
+| `totals` | object | sì |  |
+| `totals.covers` | integer | sì |  |
+| `totals.tablesTurned` | integer | sì |  |
+| `totals.noShows` | integer | sì |  |
+| `totals.waitlistRecovered` | integer | sì |  |
+
+## La chiusura di fine serata, col confronto della settimana prima
+
+`GET /reports/eod`
+
+Scope: `reports:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `venueId` | query | string (uuid) | sì | Il locale |
+| `serviceDate` | query | string (date) | sì | Il giorno di servizio |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì |  |
+| `serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `current` | object | sì |  |
+| `current.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `current.covers` | integer | sì |  |
+| `current.tablesTurned` | integer | sì |  |
+| `current.noShows` | integer | sì |  |
+| `current.waitlistRecovered` | integer | sì |  |
+| `previousWeek` | object | sì |  |
+| `previousWeek.serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `previousWeek.covers` | integer | sì |  |
+| `previousWeek.tablesTurned` | integer | sì |  |
+| `previousWeek.noShows` | integer | sì |  |
+| `previousWeek.waitlistRecovered` | integer | sì |  |
+
+## L'export delle prenotazioni, in streaming
+
+`GET /exports/reservations`
+
+Scope: `reports:read` e `reservations:read`. CSV (RFC 4180) o una prenotazione JSON per riga.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `format` | query | string: `csv`, `ndjson` | no | csv o ndjson |
+| `venueId` | query | string (uuid) | no | Solo questo locale |
+| `serviceDate` | query | string (date) | no | Un giorno di servizio, in alternativa a from/to |
+| `from` | query | string (date) | no | Dal giorno di servizio (compreso) |
+| `to` | query | string (date) | no | Al giorno di servizio (compreso) |
+| `status` | query | array | no | Uno o piu' stati |
+| `guestId` | query | string (uuid) | no | Solo questo ospite |
+| `source` | query | string: `phone`, `voice_agent`, `floor`, `waitlist`, `walk_in`, `api`, `import` | no | Solo questa origine |
+| `updatedSince` | query | string (date-time) | no | Solo cio' che e' cambiato dopo questo istante |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Le prenotazioni, una per riga |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+Formati della risposta: `text/csv`, `application/x-ndjson`
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+
+## Le consegne: status=discarded e' la coda di scarto
+
+`GET /webhook-deliveries`
+
+Scope: `webhooks:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `status` | query | array | no | Uno o piu' stati |
+| `venueId` | query | string (uuid) | no | Solo questo locale |
+| `endpointId` | query | string (uuid) | no | Solo questa destinazione |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].venueId` | string (uuid) | sì |  |
+| `data[].endpointId` | object | sì |  |
+| `data[].idempotencyKey` | string | sì | La stessa X-Gestionesala-Idempotency-Key di ogni tentativo |
+| `data[].url` | string | sì | L'indirizzo com'era al tentativo |
+| `data[].status` | string: `pending`, `delivered`, `discarded` | sì |  |
+| `data[].attemptCount` | integer | sì |  |
+| `data[].nextAttemptAt` | object | sì |  |
+| `data[].lastError` | object | sì |  |
+| `data[].lastStatusCode` | object | sì |  |
+| `data[].deliveredAt` | object | sì |  |
+| `data[].createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].body` | object | sì | Il corpo spedito: la busta del webhook, ridotta agli scope di chi legge. Senza guests:read dell'ospite resta l'id; reservation e waitlistEntry chiedono il loro scope di lettura o events:read. |
+| `nextCursor` | object | sì |  |
+
+## Rispedisce una consegna finita, con la stessa chiave di idempotenza
+
+`POST /webhook-deliveries/{id}/redeliver`
+
+Scope: `webhooks:write`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | La stessa Idempotency-Key: la consegna di allora |
+| `201` | Di nuovo in coda |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | conflict, idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `delivery` | object | sì |  |
+| `delivery.id` | string (uuid) | sì |  |
+| `delivery.venueId` | string (uuid) | sì |  |
+| `delivery.endpointId` | object | sì |  |
+| `delivery.idempotencyKey` | string | sì | La stessa X-Gestionesala-Idempotency-Key di ogni tentativo |
+| `delivery.url` | string | sì | L'indirizzo com'era al tentativo |
+| `delivery.status` | string: `pending`, `delivered`, `discarded` | sì |  |
+| `delivery.attemptCount` | integer | sì |  |
+| `delivery.nextAttemptAt` | object | sì |  |
+| `delivery.lastError` | object | sì |  |
+| `delivery.lastStatusCode` | object | sì |  |
+| `delivery.deliveredAt` | object | sì |  |
+| `delivery.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `delivery.updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `delivery.body` | object | sì | Il corpo spedito: la busta del webhook, ridotta agli scope di chi legge. Senza guests:read dell'ospite resta l'id; reservation e waitlistEntry chiedono il loro scope di lettura o events:read. |
+
+## Le destinazioni dei locali della chiave
+
+`GET /webhook-endpoints`
+
+Scope: `webhooks:read`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `limit` | query | integer | no | Righe per pagina |
+| `cursor` | query | string | no | Il nextCursor della risposta precedente |
+| `venueId` | query | string (uuid) | no | Solo questo locale |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `data` | array | sì |  |
+| `data[].id` | string (uuid) | sì |  |
+| `data[].venueId` | string (uuid) | sì |  |
+| `data[].url` | string | sì |  |
+| `data[].isActive` | boolean | sì |  |
+| `data[].secretVersion` | integer | sì |  |
+| `data[].previousSecretExpiresAt` | object | sì |  |
+| `data[].createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `data[].updatedAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `nextCursor` | object | sì |  |
+
+## Spedisce adesso un evento di prova firmato
+
+`POST /webhook-endpoints/test`
+
+Scope: `webhooks:write`. Fuori dalla coda: niente ritentativi, l'esito torna nella risposta.
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `endpointId` | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `endpointId` | string (uuid) | sì |  |
+| `delivered` | boolean | sì |  |
+| `statusCode` | object | sì |  |
+| `error` | object | sì |  |
+| `event` | object | sì |  |
+| `event.id` | string | sì | test:&lt;eventId>, anche nell'Idempotency-Key |
+| `event.eventId` | string (uuid) | sì |  |
+| `event.type` | string | sì |  |
+| `event.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `event.venueId` | string (uuid) | sì |  |
+| `event.apiVersion` | string | sì |  |
+| `event.data` | object | sì |  |
+
+## Ruota il segreto di firma, col segreto di prima ancora valido per un po'
+
+`POST /webhook-endpoints/{id}/rotate-secret`
+
+Scope: `webhooks:write`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `overlapMinutes` | integer | no |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `409` | idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `endpointId` | string (uuid) | sì |  |
+| `secretVersion` | integer | sì |  |
+| `secret` | string | sì | Il segreto nuovo: si vede solo qui |
+| `previousSecretExpiresAt` | string (date-time) | sì | Fino a quando firma anche il segreto di prima |
+
+## Importa fino a 1000 ospiti
+
+`POST /imports/guests`
+
+Scope: `imports:write`. Crea o aggiorna per telefono. Una riga storta non ferma le altre: finisce in `rejections` col motivo. Chi importa anche le prenotazioni passate non manda visitCount/noShowCount (si conterebbero due volte).
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `rows` | array | sì |  |
+| `rows[].phone` | string | sì | Il telefono, qualunque forma: la chiave con cui si crea o si aggiorna |
+| `rows[].name` | object | no |  |
+| `rows[].firstName` | object | no |  |
+| `rows[].lastName` | object | no |  |
+| `rows[].email` | object | no |  |
+| `rows[].allergies` | object | no |  |
+| `rows[].notes` | object | no |  |
+| `rows[].externalRef` | object | no |  |
+| `rows[].visitCount` | integer | no | Visite nel gestionale di prima: si sommano a quelle contate qui |
+| `rows[].noShowCount` | integer | no | Mancate presentazioni nel gestionale di prima |
+| `rows[].lastVisitAt` | object | no |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Ritrovato con la stessa Idempotency-Key |
+| `201` | Import eseguito: ospiti creati o aggiornati, righe scartate col motivo |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `409` | idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `import` | object | sì |  |
+| `import.id` | string (uuid) | sì |  |
+| `import.kind` | string: `guests`, `reservations` | sì |  |
+| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a meta', le righe gia' entrate restano |
+| `import.totalRows` | integer | sì |  |
+| `import.createdRows` | integer | sì |  |
+| `import.updatedRows` | integer | sì |  |
+| `import.rejectedRows` | integer | sì |  |
+| `import.rejections` | array | sì |  |
+| `import.rejections[].row` | integer | sì | Posizione nell'elenco mandato, da zero |
+| `import.rejections[].code` | string | sì | Codice d'errore v1: invalid_request, conflict, no_availability, not_found, forbidden |
+| `import.rejections[].message` | string | sì |  |
+| `import.rejections[].fields` | array | sì |  |
+| `import.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `import.completedAt` | object | sì |  |
+
+## Importa fino a 1000 prenotazioni, storico e future
+
+`POST /imports/reservations`
+
+Scope: `imports:write`. Origine `import`. Il passato entra nel suo stato finale, senza controllo di disponibilita' e senza tavolo; il futuro passa dal motore come ogni prenotazione. Nessuna automazione e nessun webhook partono.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `rows` | array | sì |  |
+| `rows[].venueId` | string (uuid) | sì |  |
+| `rows[].serviceDate` | string (date) | sì | Giorno di servizio, YYYY-MM-DD |
+| `rows[].time` | string | sì | Ora locale del locale, HH:mm |
+| `rows[].partySize` | integer | sì |  |
+| `rows[].status` | string: `created`, `confirmed`, `completed`, `no_show`, `cancelled` | sì | Nel passato completed, no_show o cancelled; nel futuro created, confirmed o cancelled |
+| `rows[].phone` | string | no | Il telefono dell'ospite: riconosciuto, o creato |
+| `rows[].guestName` | object | no |  |
+| `rows[].notes` | object | no |  |
+| `rows[].externalRef` | object | no |  |
+| `rows[].channel` | object | no |  |
+| `rows[].durationMinutes` | integer | no | Durata delle righe passate e cancellate, 90 se manca; le future le decide il motore |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Ritrovato con la stessa Idempotency-Key |
+| `201` | Import eseguito: prenotazioni create, righe scartate col motivo |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `409` | idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `import` | object | sì |  |
+| `import.id` | string (uuid) | sì |  |
+| `import.kind` | string: `guests`, `reservations` | sì |  |
+| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a meta', le righe gia' entrate restano |
+| `import.totalRows` | integer | sì |  |
+| `import.createdRows` | integer | sì |  |
+| `import.updatedRows` | integer | sì |  |
+| `import.rejectedRows` | integer | sì |  |
+| `import.rejections` | array | sì |  |
+| `import.rejections[].row` | integer | sì | Posizione nell'elenco mandato, da zero |
+| `import.rejections[].code` | string | sì | Codice d'errore v1: invalid_request, conflict, no_availability, not_found, forbidden |
+| `import.rejections[].message` | string | sì |  |
+| `import.rejections[].fields` | array | sì |  |
+| `import.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `import.completedAt` | object | sì |  |
+
+## Il resoconto di un import
+
+`GET /imports/{id}`
+
+Scope: `imports:write`
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `404` | not_found |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `import` | object | sì |  |
+| `import.id` | string (uuid) | sì |  |
+| `import.kind` | string: `guests`, `reservations` | sì |  |
+| `import.status` | string: `processing`, `completed`, `failed` | sì | failed: un guasto a meta', le righe gia' entrate restano |
+| `import.totalRows` | integer | sì |  |
+| `import.createdRows` | integer | sì |  |
+| `import.updatedRows` | integer | sì |  |
+| `import.rejectedRows` | integer | sì |  |
+| `import.rejections` | array | sì |  |
+| `import.rejections[].row` | integer | sì | Posizione nell'elenco mandato, da zero |
+| `import.rejections[].code` | string | sì | Codice d'errore v1: invalid_request, conflict, no_availability, not_found, forbidden |
+| `import.rejections[].message` | string | sì |  |
+| `import.rejections[].fields` | array | sì |  |
+| `import.createdAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `import.completedAt` | object | sì |  |
 
 ## Oggetto errore
 
@@ -546,6 +2191,17 @@ Tutte le risposte di errore hanno questo formato.
 | Campo | Tipo | Obbligatorio | Descrizione |
 | --- | --- | --- | --- |
 | `error` | object | sì |  |
-| `error.code` | string: `invalid_request`, `unauthenticated`, `api_key_invalid`, `api_key_revoked`, `forbidden`, `not_found`, `no_availability`, `conflict`, `idempotency_in_progress`, `idempotency_key_reused`, `rate_limited`, `internal_error` | sì | Codice macchina dell'errore. Lo status HTTP dipende solo da `code`. |
-| `error.message` | string | sì | Descrizione in italiano. Il testo può cambiare. |
-| `error.details` | object | sì | Dati aggiuntivi. Sempre presente, anche vuoto. |
+| `error.code` | string | sì | Il codice su cui ramificare |
+| `error.message` | string | sì | Per chi legge i log |
+| `error.details` | object | sì | Cosa serve per correggere o riprovare: fields (i campi storti), requiredScope, reason; per no_availability anche alternatives, gli orari vicini nella forma di GET /availability |
+| `error.details.fields` | array | no |  |
+| `error.details.requiredScope` | string | no |  |
+| `error.details.reason` | string | no |  |
+| `error.details.alternatives` | array | no |  |
+| `error.details.alternatives[].time` | string | sì | Ora locale del locale, HH:mm |
+| `error.details.alternatives[].startsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `error.details.alternatives[].endsAt` | string (date-time) | sì | Istante ISO 8601 con fuso |
+| `error.details.alternatives[].turnTimeMinutes` | integer | sì |  |
+| `error.details.alternatives[].seats` | integer | sì |  |
+| `error.details.alternatives[].overflowsShift` | boolean | sì |  |
+| `error.requestId` | string | no | Lo stesso valore dell'header X-Request-Id |

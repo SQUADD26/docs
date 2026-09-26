@@ -1,25 +1,64 @@
 ---
 title: "Limiti di richiesta"
 sidebarTitle: "Limiti di richiesta"
-description: "Limite di richieste al minuto per chiave API e gestione della risposta 429."
+description: "Limite di richieste al minuto, header X-RateLimit-* e Retry-After, gestione della risposta 429."
 icon: "gauge"
 ---
 
 ## Richieste al minuto
 
-| Ambito | Limite |
+| Chiave | Limite | Ambito |
+| --- | --- | --- |
+| Segreta (`gsk_`, `gsk_test_`) | Fissato alla creazione, predefinito 120, massimo 20000 | Per chiave |
+| Pubblica del widget (`gspk_`, `gspk_test_`) | Fissato alla creazione, predefinito 20 | Per indirizzo IP del visitatore; per IPv6, per `/64` |
+
+La finestra dura un minuto e riparte all'istante indicato da `X-RateLimit-Reset`. Il limite di una chiave segreta è indipendente da quello delle altre chiavi della stessa organizzazione. Il limite della chiave pubblica non è condiviso fra visitatori: il traffico di un indirizzo non consuma quello degli altri.
+
+## Header
+
+Ogni risposta a una richiesta con una chiave riconosciuta, errori compresi, porta questi header:
+
+| Header | Valore |
 | --- | --- |
-| Chiave API | Numero massimo di richieste al minuto, fissato alla creazione della chiave |
+| `X-RateLimit-Limit` | Richieste concesse nella finestra. Per la chiave pubblica, il limite dell'indirizzo IP |
+| `X-RateLimit-Remaining` | Richieste rimaste nella finestra corrente |
+| `X-RateLimit-Reset` | Istante in cui la finestra riparte, in secondi Unix |
+| `Retry-After` | Solo sul `429`: secondi da attendere prima di ripetere, almeno `1` |
 
-Il limite si applica per chiave, non per organizzazione: due chiavi della stessa organizzazione hanno limiti indipendenti.
+Una richiesta senza chiave o con una chiave sconosciuta non riceve gli header `X-RateLimit-*`. Ogni risposta porta invece `X-Request-Id`.
 
-Oltre il limite, l'API risponde `429`:
-
-```json
-{ "error": { "code": "rate_limited", "message": "troppe richieste per questa chiave", "details": {} } }
+```http
+HTTP/1.1 200 OK
+X-Request-Id: 6f1c2a0e-4b8d-4c6e-9a51-2f3b7d8e9a10
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 117
+X-RateLimit-Reset: 1790000060
 ```
 
-La risposta non include gli header `Retry-After` né `X-RateLimit-*`. Ripeti la richiesta con backoff esponenziale: attesa iniziale di qualche secondo, raddoppiata a ogni `429` successivo.
+## Risposta 429
+
+Oltre il limite, l'API risponde `429 rate_limited`. `details.limit` riporta il limite, `details.resetAt` l'istante di ripartenza in ISO 8601.
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 23
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1790000060
+```
+
+```json
+{
+  "error": {
+    "code": "rate_limited",
+    "message": "troppe richieste per questa chiave",
+    "details": { "limit": 120, "resetAt": "2026-09-21T14:14:20.000Z" },
+    "requestId": "6f1c2a0e-4b8d-4c6e-9a51-2f3b7d8e9a10"
+  }
+}
+```
+
+Attendi i secondi indicati da `Retry-After`, poi ripeti la richiesta. Per distribuire il carico, usa `X-RateLimit-Remaining` per rallentare prima di arrivare a zero.
 
 <Tip>
   Per ripetere una creazione dopo un `429`, usa la stessa [`Idempotency-Key`](/api/idempotenza).
@@ -29,10 +68,11 @@ La risposta non include gli header `Retry-After` né `X-RateLimit-*`. Ripeti la 
 
 | Campo | Vincolo |
 | --- | --- |
-| `serviceDate` | `YYYY-MM-DD` |
-| `time`, `earliestTime`, `latestTime` | `HH:MM` |
+| `serviceDate`, `from`, `to` | `YYYY-MM-DD`, nell'ora del locale |
+| `time`, `earliestTime`, `latestTime` | `HH:mm`, nell'ora del locale |
+| `startsAt`, `endsAt`, `updatedAt`, `updatedSince`, `since` | ISO 8601 con fuso |
 | `partySize` | Intero maggiore di zero |
 | `phone` | Qualsiasi formato normalizzabile in E.164 |
-| Body di `PATCH /reservations/{id}` | Almeno uno tra `serviceDate`, `time`, `partySize`, `notes` |
+| `limit` | Da `1` a `200`, predefinito `50`. Vedi [Paginazione](/api/paginazione) |
 
-Un campo obbligatorio mancante, un `partySize` non valido, un `phone` non normalizzabile o un body `PATCH` senza campi modificabili restituiscono `400 invalid_request`.
+Un campo non valido restituisce `400 invalid_request` con i nomi dei campi in `details.fields`.

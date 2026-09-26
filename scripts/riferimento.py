@@ -22,7 +22,9 @@ def ref(obj):
 
 
 def one_line(text):
-    return " ".join((text or "").split())
+    # Testo per MDX: `<` e le graffe aprirebbero un tag o un'espressione.
+    text = " ".join((text or "").split())
+    return text.replace("<", "&lt;").replace("{", "\\{").replace("}", "\\}")
 
 
 def type_of(schema):
@@ -72,6 +74,8 @@ out = [
 
 for path, ops in spec["paths"].items():
     for method, op in ops.items():
+        if method not in ("get", "post", "put", "patch", "delete"):
+            continue
         out += [f"## {op['summary']}", "", f"`{method.upper()} {path}`", ""]
         if op.get("x-mint", {}).get("href"):
             out += [f"Pagina con playground: [{op['x-mint']['href']}]({op['x-mint']['href']})", ""]
@@ -94,7 +98,8 @@ for path, ops in spec["paths"].items():
             if ref(media["schema"]).get("description"):
                 out += [one_line(ref(media["schema"])["description"]), ""]
             out += fields_table(media["schema"]) + [""]
-            out += ["```json Esempio di body", json.dumps(media["example"], indent=2, ensure_ascii=False), "```", ""]
+            if "example" in media:
+                out += ["```json Esempio di body", json.dumps(media["example"], indent=2, ensure_ascii=False), "```", ""]
 
         out += ["### Risposte", "", "| Status | Descrizione |", "| --- | --- |"]
         for status, resp in op["responses"].items():
@@ -102,9 +107,15 @@ for path, ops in spec["paths"].items():
         out.append("")
 
         ok = next((r for s, r in op["responses"].items() if s in ("200", "201")), None)
-        media = ref(ok)["content"]["application/json"]
-        out += ["### Campi della risposta", ""]
-        for schema in response_schemas(media["schema"]):
+        if ok is None or "content" not in ref(ok):
+            continue
+        content = ref(ok)["content"]
+        media = content.get("application/json") or next(iter(content.values()))
+        if "application/json" not in content:
+            out += ["Formati della risposta: " + ", ".join(f"`{t}`" for t in content), ""]
+        if "schema" in media:
+            out += ["### Campi della risposta", ""]
+        for schema in response_schemas(media["schema"]) if "schema" in media else []:
             if schema.get("title"):
                 out += [f"**{schema['title']}**", ""]
             out += fields_table(schema, head="Sempre presente") + [""]
