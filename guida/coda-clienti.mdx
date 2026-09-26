@@ -1,0 +1,17 @@
+---
+title: "Coda clienti"
+description: "Ospiti senza posto in attesa di essere richiamati."
+icon: "list-ol"
+---
+
+La coda clienti raccoglie chi non ha trovato posto e ha accettato di essere richiamato se qualcosa si libera. Si raggiunge da un link; gli ospiti in coda compaiono anche in [Sala](/guida/sala).
+
+## Come funziona
+
+- Ogni ospite in coda ha data, coperti e una **finestra oraria** (dal più presto al più tardi che gli va bene).
+- Quando si libera un posto compatibile, va contattato il **primo idoneo**.
+- Le [automazioni](/guida/automazioni) possono partire dagli eventi **Cliente in coda** e **Si libera un tavolo adatto**, e usare l'azione **Richiama un cliente in coda**.
+
+L'agente vocale può mettere in coda un ospite tramite [`POST /waitlist`](/api/riferimento-completo).
+
+Quanti ospiti la coda ha recuperato compare nel [consuntivo di serata](/guida/consuntivo).

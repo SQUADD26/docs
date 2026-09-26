@@ -1,0 +1,34 @@
+/* Codice inline nel colore dell'app: arancio su chiaro, arancio acceso su scuro. */
+:root {
+  --gs-code: #c34517;
+  --gs-code-bg: rgba(250, 110, 29, 0.1);
+  --gs-code-border: rgba(195, 69, 23, 0.22);
+}
+.dark {
+  --gs-code: #fa8a4a;
+  --gs-code-bg: rgba(250, 110, 29, 0.14);
+  --gs-code-border: rgba(250, 110, 29, 0.3);
+}
+
+.prose :where(code):not(pre code),
+.prose :where(td, th, li, p) code:not(pre code) {
+  color: var(--gs-code);
+  background-color: var(--gs-code-bg);
+  border: 1px solid var(--gs-code-border);
+  border-radius: 0.375rem;
+  padding: 0.1em 0.35em;
+  font-weight: 500;
+}
+
+.prose a code:not(pre code) {
+  color: inherit;
+}
+
+/* Badge metodo nella sidebar: PATCH e DELETE su una riga. */
+.method-nav-pill {
+  width: auto;
+  min-width: 2rem;
+}
+.method-nav-pill > span {
+  white-space: nowrap;
+}

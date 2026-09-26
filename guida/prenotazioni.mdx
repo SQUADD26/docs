@@ -1,0 +1,23 @@
+---
+title: "Prenotazioni"
+description: "Creazione, spostamento e chiusura delle prenotazioni del giorno."
+icon: "calendar"
+---
+
+La pagina Prenotazioni elenca le prenotazioni del giorno del locale in cui ti trovi. Il maitre qui prende una prenotazione, la sposta, la chiude. Si raggiunge da un link, non dalla barra laterale.
+
+## Come funziona una prenotazione
+
+- Nasce **valida anche senza tavolo**: la disponibilità si calcola sulla capacità del turno, non sul tavolo libero in quel momento.
+- Il tavolo si assegna a **capienza ottimale**: quello che spreca meno posti.
+- La **durata** stimata dipende dal turno e dai coperti; la **cadenza**, se accesa, limita i coperti per fascia oraria.
+- Se dopo una modifica di orario, coperti o pianta nessun tavolo regge, la prenotazione diventa **da sistemare**: vale, ma qualcuno deve decidere.
+- Una prenotazione che invade il turno successivo è uno **sforamento**: l'app lo segnala, non lo vieta.
+
+## Ritardi e mancate presentazioni
+
+Oltre la **tolleranza** impostata in [Impostazioni → Tempo](/guida/impostazioni#tempo), la prenotazione diventa **mancata presentazione**: il tavolo si libera e il fatto resta sulla scheda dell'ospite.
+
+## Prenotazioni da fuori
+
+Le prenotazioni possono arrivare anche dall'agente vocale al telefono, tramite l'[API](/api/introduzione). Compaiono qui come le altre.

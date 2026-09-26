@@ -1,0 +1,49 @@
+---
+title: "Idempotenza"
+description: "Header Idempotency-Key per ripetere una creazione senza creare duplicati."
+icon: "repeat"
+---
+
+Una richiesta di creazione può fallire lato rete dopo che il server l'ha eseguita. L'header `Idempotency-Key` permette di ripeterla senza creare una seconda risorsa.
+
+```http
+Idempotency-Key: chiamata-8f2a-prenota
+```
+
+## Endpoint supportati
+
+| Endpoint | Operazione |
+| --- | --- |
+| `POST /reservations` | Crea una prenotazione |
+| `POST /waitlist` | Aggiunge un ospite alla lista d'attesa |
+| `POST /waitlist/{id}/convert` | Converte una voce in prenotazione |
+| `POST /guests` | Crea o aggiorna un ospite |
+| `POST /imports/guests`, `POST /imports/reservations` | Avvia un import |
+| `POST /webhook-deliveries/{id}/redeliver` | Rispedisce una consegna |
+| `POST /webhook-endpoints/{id}/rotate-secret` | Ruota il segreto di firma |
+
+L'header è facoltativo. Senza header, ogni richiesta viene eseguita. Gli altri endpoint ignorano l'header.
+
+## Comportamento
+
+| Caso | Risposta |
+| --- | --- |
+| Prima richiesta con la chiave | `201` con la risorsa creata |
+| Stessa chiave e stessa operazione, prima richiesta completata | `200` con la risorsa creata dalla prima richiesta. Nessuna nuova risorsa |
+| Stessa chiave, prima richiesta ancora in corso | `409 idempotency_in_progress`. Ripetere dopo qualche secondo con la stessa chiave |
+| Stessa chiave con un'altra operazione (metodo e percorso, id compresi), un altro corpo o un'altra chiave API | `422 idempotency_key_reused`. `details.operation` indica l'operazione originale; `details.reason` vale `different_body` o `other_api_key` |
+| Prima richiesta fallita con errore | La chiave viene rilasciata. Una nuova richiesta con la stessa chiave viene eseguita da capo |
+
+La chiave è legata alla chiave API, all'operazione e al corpo della richiesta. Organizzazioni diverse possono usare la stessa stringa senza interferenze.
+
+## Scelta della chiave
+
+Usa una chiave per ogni operazione logica di creazione, non per ogni tentativo. Per un agente vocale: ID della chiamata più l'azione, ad esempio `<id-chiamata>-prenota`. Ogni ripetizione della stessa creazione usa la stessa chiave; una seconda prenotazione nella stessa chiamata usa una chiave diversa.
+
+```bash
+curl -s -X POST "https://app.gestionesala.com/api/v1/waitlist" \
+  -H "Authorization: Bearer $GS_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: chiamata-8f2a-coda" \
+  -d '{"venueId":"b1e2c3d4-0000-4000-8000-000000000001","serviceDate":"2026-09-26","partySize":2,"earliestTime":"20:00","latestTime":"21:30","phone":"+393391112233","guestName":"Mario Rossi"}'
+```

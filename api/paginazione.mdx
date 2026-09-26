@@ -1,0 +1,73 @@
+---
+title: "Paginazione"
+description: "Elenchi a cursore: limit, cursor, nextCursor, ordine e sincronizzazione incrementale."
+icon: "list"
+---
+
+Gli endpoint che restituiscono un elenco usano la paginazione a cursore. La risposta ha sempre la stessa forma:
+
+```json
+{
+  "data": [ { "id": "…" } ],
+  "nextCursor": "WyIyMDI2LTA5LTI2VDE4OjA0OjExLjAwMFoiLCI…"
+}
+```
+
+| Campo | Tipo | Descrizione |
+| --- | --- | --- |
+| `data` | array | Gli elementi della pagina |
+| `nextCursor` | string \| null | Cursore della pagina successiva. `null` quando non ci sono altre pagine |
+
+## Parametri
+
+| Parametro | Tipo | Descrizione |
+| --- | --- | --- |
+| `limit` | integer | Elementi per pagina, da `1` a `200`. Predefinito `50` |
+| `cursor` | string | Il `nextCursor` di una risposta precedente, passato senza modifiche |
+
+Un `limit` fuori intervallo o un `cursor` non riconosciuto restituiscono `400 invalid_request` con `details.fields`.
+
+Il cursore è opaco: il suo contenuto non fa parte del contratto. Usa un cursore solo con lo stesso endpoint e gli stessi filtri della richiesta che lo ha prodotto.
+
+## Scorrere tutte le pagine
+
+```bash
+cursor=""
+while :; do
+  page=$(curl -s "https://app.gestionesala.com/api/v1/reservations?limit=200&cursor=$cursor" \
+    -H "Authorization: Bearer $GS_KEY")
+  echo "$page" | jq -c '.data[]'
+  cursor=$(echo "$page" | jq -r '.nextCursor // empty')
+  [ -z "$cursor" ] && break
+done
+```
+
+## Ordine
+
+Gli elenchi sono ordinati per `(updatedAt, id)` crescente. Una risorsa modificata durante la lettura si sposta in fondo all'elenco e compare in una pagina successiva: nessuna risorsa si perde fra due pagine. Una risorsa può quindi comparire più di una volta nella stessa scansione; deduplica per `id` tenendo l'`updatedAt` più recente.
+
+`GET /events` fa eccezione: è ordinato per istante di creazione dell'evento e `id`, crescente.
+
+## Sincronizzazione incrementale
+
+`GET /reservations`, `GET /guests` e `GET /waitlist` accettano `updatedSince` (ISO 8601 con fuso): l'elenco contiene solo le risorse modificate dopo quell'istante.
+
+1. Alla prima sincronizzazione, scorri tutte le pagine senza `updatedSince`.
+2. Salva l'`updatedAt` più recente ricevuto.
+3. Alle sincronizzazioni successive, passa quel valore in `updatedSince`.
+
+`GET /events` accetta `since` con lo stesso formato. Un evento può diventare visibile con un istante di creazione di poco precedente a una lettura già fatta: riparti da un minuto prima dell'ultimo evento ricevuto e scarta gli `id` già elaborati.
+
+## Filtri
+
+I filtri si combinano con la paginazione. Quelli comuni agli elenchi:
+
+| Parametro | Formato | Descrizione |
+| --- | --- | --- |
+| `venueId` | uuid | Un locale fra quelli della chiave |
+| `from`, `to` | `YYYY-MM-DD` | Giorni di servizio, estremi compresi |
+| `status` | uno o più valori | `status=a&status=b` oppure `status=a,b` |
+| `guestId` | uuid | Solo le risorse di un ospite |
+| `updatedSince` | ISO 8601 con fuso | Solo le risorse modificate dopo l'istante |
+
+I filtri disponibili per ciascun endpoint sono elencati nella sua pagina.

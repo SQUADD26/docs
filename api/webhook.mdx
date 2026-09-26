@@ -1,0 +1,219 @@
+---
+title: "Webhook"
+description: "Consegna degli eventi: busta, catalogo degli eventi, firma HMAC, ritentativi, verifica della firma."
+icon: "webhook"
+---
+
+Un webhook è una richiesta `POST` che Gestione Sala invia a un indirizzo HTTPS quando accade un evento in sala. Il webhook parte dall'azione **Avvisa SQUADD** di un'[automazione](/guida/automazioni): l'automazione decide quale evento e in quali condizioni, la consegna porta l'evento nella busta descritta qui.
+
+## Destinazione
+
+L'azione **Avvisa SQUADD** indica dove consegnare in uno di questi modi:
+
+| Modo | Segreto di firma |
+| --- | --- |
+| Indirizzo scritto nell'azione | Segreto dell'organizzazione |
+| Destinazione registrata del locale (`GET /webhook-endpoints`) | Segreto della destinazione, con rotazione |
+
+Un'azione senza indirizzo e senza destinazione usa la destinazione principale del locale, cioè la registrata per prima. Se non esiste o è spenta, la consegna fallisce e l'esito compare nello storico dell'automazione.
+
+L'indirizzo scritto nell'azione deve essere HTTPS. Ogni indirizzo deve risolvere a un IP pubblico: un indirizzo che risolve a una rete interna non riceve la richiesta. Il controllo si ripete a ogni tentativo.
+
+## Richiesta
+
+```http
+POST /hook HTTP/1.1
+Content-Type: application/json
+User-Agent: gestionesala-webhook/1
+X-Gestionesala-Signature: v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd
+X-Gestionesala-Timestamp: 1790000000
+X-Gestionesala-Idempotency-Key: automation:3f0c…:a
+```
+
+| Header | Valore |
+| --- | --- |
+| `X-Gestionesala-Signature` | `v1=<HMAC-SHA256 esadecimale minuscolo>`. Durante una rotazione, due firme separate da virgola |
+| `X-Gestionesala-Timestamp` | Istante della firma, in secondi Unix |
+| `X-Gestionesala-Idempotency-Key` | Chiave della consegna, identica a ogni tentativo |
+
+La consegna riesce se il destinatario risponde `2xx` entro 10 secondi. Una risposta `3xx` è un fallimento: i redirect non vengono seguiti.
+
+## Busta
+
+```json
+{
+  "id": "automation:3f0c9a1e-5b7d-4f2a-9c1e-8d7b6a5f4e3d:a",
+  "eventId": "7c2e1f0a-3b4d-4e5f-8a9b-0c1d2e3f4a5b",
+  "type": "reservation_created",
+  "createdAt": "2026-09-26T18:04:11.000Z",
+  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+  "apiVersion": "v1",
+  "data": {
+    "reservation": {
+      "id": "e4f5a6b7-0000-4000-8000-000000000042",
+      "serviceDate": "2026-09-26",
+      "time": "20:30",
+      "partySize": 4,
+      "status": "confirmed",
+      "guest": { "name": "Mario Rossi", "allergies": "Glutine", "allergens": ["gluten"] }
+    }
+  },
+  "automation": { "name": "Conferma al cliente", "runId": "3f0c9a1e-5b7d-4f2a-9c1e-8d7b6a5f4e3d" }
+}
+```
+
+| Campo | Descrizione |
+| --- | --- |
+| `id` | Identificativo della consegna. Uguale a `X-Gestionesala-Idempotency-Key` e stabile fra i tentativi |
+| `eventId` | Identificativo dell'evento. Lo stesso di `GET /events` |
+| `type` | Tipo di evento. Vedi [Catalogo degli eventi](#catalogo-degli-eventi) |
+| `createdAt` | Istante in cui è accaduto l'evento, ISO 8601 UTC |
+| `venueId` | Locale dell'evento |
+| `apiVersion` | Versione della forma di `data`: `v1` |
+| `data` | La risorsa dell'evento, nella stessa forma delle risposte v1 |
+| `automation` | Nome dell'automazione e identificativo dell'esecuzione che ha inviato la consegna |
+
+`data.reservation` è la prenotazione al momento dell'invio, non al momento dell'evento: un webhook inviato dopo un'attesa riporta orario e stato correnti. `GET /events` restituisce invece i dati al momento dell'evento; `updatedAt` indica quale delle due versioni è più recente.
+
+## Catalogo degli eventi
+
+| `type` | Quando | `data` |
+| --- | --- | --- |
+| `reservation_created` | Viene creata una prenotazione | `reservation` |
+| `reservation_confirmed` | La prenotazione passa a `confirmed` | `reservation` |
+| `reservation_modified` | Cambiano giorno, orario, coperti o note | `reservation` |
+| `reservation_cancelled` | La prenotazione passa a `cancelled` | `reservation` |
+| `guest_arrived` | La prenotazione passa a `arrived` | `reservation` |
+| `guest_seated` | La prenotazione passa a `seated` | `reservation` |
+| `table_released` | Il tavolo viene liberato | `reservation` |
+| `meal_completed` | La prenotazione passa a `completed` | `reservation` |
+| `reservation_late` | L'orario è passato e l'ospite non è arrivato | `reservation` |
+| `reservation_no_show` | È superata la tolleranza di mancata presentazione | `reservation` |
+| `reservation_needs_attention` | La prenotazione è valida ma va sistemata in sala | `reservation` |
+| `waitlist_entry_created` | Un ospite entra in lista d'attesa | `waitlistEntry` |
+| `waitlist_entry_cancelled` | Una voce viene tolta dalla lista d'attesa | `waitlistEntry` |
+| `compatible_table_freed` | Si libera un tavolo adatto a una voce in lista d'attesa | `waitlistEntry` |
+| `guest_profile_changed` | Un ospite viene creato o la sua scheda cambia | `guest`, `reason` |
+| `webhook_test` | Evento di prova da `POST /webhook-endpoints/test` | vuoto |
+
+Per `guest_profile_changed`, `reason` vale `guest_created`, `profile_changed` o `service_tags_changed`.
+
+Le prenotazioni importate con `POST /imports/reservations` non generano eventi. Le organizzazioni di prova non inviano webhook.
+
+## Firma
+
+La firma è un HMAC-SHA256 calcolato sul segreto e su questa stringa, quattro righe separate da `\n`:
+
+```text
+v1
+<X-Gestionesala-Timestamp>
+<X-Gestionesala-Idempotency-Key>
+<corpo della richiesta, byte per byte>
+```
+
+Il risultato, in esadecimale minuscolo, viaggia in `X-Gestionesala-Signature` con il prefisso `v1=`. Il timestamp è parte della stringa firmata: una richiesta ripetuta con un timestamp diverso non verifica.
+
+### Segreto
+
+- **Destinazione registrata**: ogni destinazione ha il proprio segreto, versionato. `POST /webhook-endpoints/{id}/rotate-secret` genera la versione successiva e la restituisce una sola volta.
+- **Indirizzo nell'azione**: la consegna è firmata con il segreto dell'organizzazione, che coincide con la versione `0` di ogni destinazione.
+
+Durante una rotazione, per `overlapMinutes` minuti (predefinito: un giorno), l'header contiene due firme separate da virgola: `v1=<nuova>,v1=<precedente>`. Una firma valida è sufficiente. Aggiorna il segreto nel destinatario entro la scadenza della versione precedente.
+
+### Verifica
+
+1. Leggi il corpo come byte grezzi, prima di qualsiasi parsing JSON.
+2. Rifiuta la richiesta se `X-Gestionesala-Timestamp` dista più di 5 minuti dall'ora corrente.
+3. Calcola la firma attesa sulla stringa `v1\n<timestamp>\n<idempotency-key>\n<corpo>`.
+4. Confronta la firma attesa con ciascuna firma dell'header, a tempo costante.
+5. Se `X-Gestionesala-Idempotency-Key` è già stata elaborata, rispondi `200` senza rielaborare.
+
+<CodeGroup>
+
+```javascript Node.js
+import { createHmac, timingSafeEqual } from "node:crypto";
+import express from "express";
+
+const SECRET = process.env.GESTIONESALA_WEBHOOK_SECRET;
+const app = express();
+
+app.post("/hook", express.raw({ type: "application/json" }), (req, res) => {
+  const timestamp = req.get("X-Gestionesala-Timestamp") ?? "";
+  const key = req.get("X-Gestionesala-Idempotency-Key") ?? "";
+  const header = req.get("X-Gestionesala-Signature") ?? "";
+
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return res.sendStatus(400);
+
+  const signed = `v1\n${timestamp}\n${key}\n${req.body.toString("utf8")}`;
+  const expected = Buffer.from("v1=" + createHmac("sha256", SECRET).update(signed).digest("hex"));
+  const valid = header.split(",").some((signature) => {
+    const received = Buffer.from(signature.trim());
+    return received.length === expected.length && timingSafeEqual(received, expected);
+  });
+  if (!valid) return res.sendStatus(401);
+
+  const event = JSON.parse(req.body.toString("utf8"));
+  // Elabora event.type ed event.data, deduplicando su key.
+  res.sendStatus(200);
+});
+```
+
+```python Python
+import hashlib
+import hmac
+import os
+import time
+
+from flask import Flask, abort, request
+
+SECRET = os.environ["GESTIONESALA_WEBHOOK_SECRET"].encode()
+app = Flask(__name__)
+
+
+@app.post("/hook")
+def hook():
+    timestamp = request.headers.get("X-Gestionesala-Timestamp", "")
+    key = request.headers.get("X-Gestionesala-Idempotency-Key", "")
+    header = request.headers.get("X-Gestionesala-Signature", "")
+    body = request.get_data()
+
+    if not timestamp.isdigit() or abs(time.time() - int(timestamp)) > 300:
+        abort(400)
+
+    signed = b"v1\n" + timestamp.encode() + b"\n" + key.encode() + b"\n" + body
+    expected = "v1=" + hmac.new(SECRET, signed, hashlib.sha256).hexdigest()
+    if not any(hmac.compare_digest(expected, s.strip()) for s in header.split(",")):
+        abort(401)
+
+    event = request.get_json()
+    # Elabora event["type"] ed event["data"], deduplicando su key.
+    return "", 200
+```
+
+</CodeGroup>
+
+## Ritentativi
+
+Una consegna fallita (errore di rete, timeout, risposta diversa da `2xx`) viene ritentata con attese crescenti. Corpo, firma e `X-Gestionesala-Idempotency-Key` non cambiano fra i tentativi; cambia solo `X-Gestionesala-Timestamp`, con la firma ricalcolata.
+
+| Tentativo | Momento |
+| --- | --- |
+| 1 | All'evento |
+| 2 | 1 minuto dopo il primo fallimento |
+| 3 | 5 minuti dopo il secondo |
+| 4 | 15 minuti dopo il terzo |
+| 5 | 1 ora dopo il quarto |
+
+Dopo il quinto tentativo fallito, la consegna passa a `discarded` ed entra nella coda di scarto. Disattivare o archiviare l'automazione annulla anche le consegne in attesa di un ritentativo.
+
+## Consegne e coda di scarto
+
+| Endpoint | Scope | Uso |
+| --- | --- | --- |
+| `GET /webhook-deliveries` | `webhooks:read` | Esito di ogni consegna: `pending`, `delivered`, `discarded`. `status=discarded` restituisce la coda di scarto |
+| `POST /webhook-deliveries/{id}/redeliver` | `webhooks:write` | Rimette in coda una consegna conclusa, con la stessa chiave di idempotenza e lo stesso corpo, verso la stessa destinazione |
+| `GET /webhook-endpoints` | `webhooks:read` | Destinazioni registrate dei locali della chiave |
+| `POST /webhook-endpoints/test` | `webhooks:write` | Invia subito un evento `webhook_test` firmato a una destinazione e restituisce l'esito |
+| `POST /webhook-endpoints/{id}/rotate-secret` | `webhooks:write` | Genera un nuovo segreto; il precedente resta valido per `overlapMinutes` |
+
+Una consegna ancora `pending` non si può rispedire: la risposta è `409`. In `GET /webhook-deliveries` il corpo di ogni consegna è filtrato con gli scope della chiave: senza `guests:read` i dati dell'ospite sono ridotti all'`id`, senza `reservations:read` (o `events:read`) la prenotazione è `null`.

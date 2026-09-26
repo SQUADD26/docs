@@ -1,0 +1,64 @@
+---
+title: "Prompt per agenti"
+description: "Prompt da incollare in Claude, ChatGPT o Cursor per integrare l'API v1 di Gestione Sala."
+icon: "terminal"
+---
+
+Sostituisci le parti tra `<>` e incolla il prompt nell'assistente (Claude, ChatGPT, Cursor, Claude Code).
+
+```markdown Prompt
+Integra l'API v1 di Gestione Sala (gestionale di sala per ristoranti) in <sistema: es. "un agente vocale che risponde al telefono del ristorante", "un sito di prenotazione in Next.js">.
+
+## Fonti
+Leggi queste fonti prima di scrivere codice. Non usare endpoint, campi o codici di errore che non compaiono nella specifica.
+- Documentazione completa, riferimento API incluso: https://docs.gestionesala.com/llms-full.txt
+- Specifica OpenAPI 3.1 (fonte di verità): https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml
+
+## Dati
+- Base URL: https://app.gestionesala.com/api/v1
+- Autenticazione: header `Authorization: Bearer gsk_...`. Leggi la chiave dalla variabile d'ambiente GESTIONESALA_API_KEY.
+- La chiave ha i permessi del membro dell'organizzazione a cui è associata.
+- venueId del locale: <id del locale>
+- Date `YYYY-MM-DD`; orari `HH:MM` nel fuso del locale; `startsAt`/`endsAt` ISO 8601 UTC.
+
+## Regole
+1. Prima di creare una prenotazione chiama GET /availability. Con `available: false` (status 200) leggi `reason` e proponi `alternatives`. Se `alternatives` è vuoto, proponi POST /waitlist.
+2. Per identificare il chiamante usa GET /guests/lookup?phone=... Con `found: false` (status 200) chiedi il nome e passalo come `guestName`.
+3. Su POST /reservations e POST /waitlist invia sempre `Idempotency-Key`: una chiave per ogni operazione di creazione (es. `<id-chiamata>-prenota`), identica a ogni ripetizione.
+   - 201: risorsa creata. 200: risorsa già creata con la stessa chiave.
+   - 409 `idempotency_in_progress`: ripeti dopo qualche secondo con la stessa chiave.
+   - 422 `idempotency_key_reused`: la chiave è stata usata per un'altra operazione; è un errore del client.
+4. Gli errori hanno la forma `{ "error": { "code", "message", "details" } }`. La logica usa `code`, mai `message`.
+   - 409 `no_availability`: usa `details.reason` e `details.alternatives`.
+   - 409 `conflict`: rileggi la prenotazione e ripeti.
+   - 401 `api_key_revoked`: non ripetere, segnala.
+   - 403 `forbidden`: non ripetere, segnala il permesso mancante.
+   - 429 `rate_limited`: nessun header Retry-After; ripeti con backoff esponenziale.
+5. L'API non accetta e non restituisce il tavolo. `tableAssigned` indica se un tavolo è assegnato. `needsAttention: true` indica una prenotazione valida che richiede un intervento in sala.
+6. Per modificare usa PATCH /reservations/{id} con almeno uno tra `serviceDate`, `time`, `partySize`, `notes`. Per annullare usa DELETE /reservations/{id}: imposta `status` a `cancelled`.
+
+## Consegna
+- Client tipizzato, una funzione per endpoint, generato dalla specifica o scritto a mano.
+- Gestione di tutti i valori di `code` della specifica.
+- Test per: disponibilità presente; disponibilità assente con alternative; ospite non trovato; ripetizione idempotente (200 dopo 201); 429.
+- Nessun segreto nel codice.
+```
+
+## Server MCP
+
+Se l'assistente supporta MCP, collega anche il server della documentazione: l'agente cerca le pagine necessarie durante il lavoro.
+
+```text
+https://docs.gestionesala.com/mcp
+```
+
+Istruzioni per client: [Server MCP](/ia/panoramica#server-mcp).
+
+## Regole aggiuntive per un agente vocale
+
+```markdown
+- Interlocutore al telefono: frasi brevi, una domanda per volta.
+- Prima di creare la prenotazione conferma data, orario e numero di persone.
+- Non comunicare il tavolo: l'API non lo restituisce.
+- Con `available: false` proponi al massimo due alternative, poi la coda clienti.
+```

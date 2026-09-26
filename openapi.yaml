@@ -1,0 +1,5968 @@
+openapi: 3.1.0
+info:
+  title: Gestione Sala API
+  version: 1.0.0
+  description: 'Autenticazione: Authorization: Bearer <chiave>. Errori: {error:{code,message,details,requestId}},
+    anche per un percorso che non esiste (404 not_found); un metodo che il percorso non ha è un 405 della
+    piattaforma, senza corpo. Risorsa singola: {nomeRisorsa: {...}}; lista d''attesa: entry. Elenchi:
+    {data,nextCursor}, limit fino a 200. Intervalli di giorni: from/to. serviceDate YYYY-MM-DD e time
+    HH:mm nell''ora del locale; startsAt/endsAt/updatedAt ISO 8601 UTC; timezone IANA. Un id di percorso
+    storto è 404. Ogni risposta porta X-Request-Id; quelle con una chiave riconosciuta anche X-RateLimit-Limit/Remaining/Reset
+    (per la chiave pubblica del widget, il tetto del tuo indirizzo IP); il 429 anche Retry-After. Idempotency-Key:
+    legata a chiave API, operazione e corpo; riusata con un altro corpo è 422 idempotency_key_reused,
+    ancora in corso 409 idempotency_in_progress. Chiavi di prova (gsk_test_, organizzazione di prova):
+    ogni risposta JSON porta livemode:false, nessun webhook, messaggio o sincronizzazione SQUADD parte.
+    Chiave pubblica del widget (gspk_): solo GET /availability, /availability/slots, /availability/days
+    e POST /reservations, dai siti ammessi (CORS, header Origin), con un limite per indirizzo IP; senza
+    serviceTags né externalRef, e la prenotazione creata torna senza i dati dell''ospite. Altrove: 403
+    forbidden, details.reason publishable_key o origin_not_allowed.'
+servers:
+- url: https://app.gestionesala.com/api/v1
+tags:
+- name: Meta
+  description: Identità della chiave, stato del servizio e specifica OpenAPI
+- name: Locali
+  description: Locali accessibili alla chiave e relativo `venueId`
+- name: Configurazione del locale
+  description: Turni, chiusure, sale, tavoli, piante, regole e stato della sala
+- name: Disponibilità
+  description: Disponibilità per orario, per giorno e su un intervallo di giorni
+- name: Prenotazioni
+  description: Lettura, creazione, modifica e annullamento delle prenotazioni
+- name: Lista d'attesa
+  description: Voci in attesa di un posto, richiamo e conversione in prenotazione
+- name: Ospiti
+  description: Rubrica degli ospiti, ricerca per telefono e tag di servizio
+- name: Eventi e report
+  description: Storico degli eventi, consuntivi ed export delle prenotazioni
+- name: Webhook
+  description: 'Consegne, reinvio, evento di prova e rotazione del segreto di firma. Firma: X-Gestionesala-Signature
+    = v1=HMAC-SHA256(segreto, "v1\n<timestamp>\n<idempotency-key>\n<corpo>"), con X-Gestionesala-Timestamp
+    e X-Gestionesala-Idempotency-Key; in una rotazione due firme separate da virgola.'
+- name: Import
+  description: Import di ospiti e prenotazioni da un altro gestionale
+paths:
+  /me:
+    get:
+      tags:
+      - Meta
+      summary: Recupera la chiave API corrente
+      security:
+      - apiKey: []
+      operationId: getMe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /health:
+    get:
+      tags:
+      - Meta
+      summary: Verifica lo stato del servizio
+      description: Verifica che il servizio e il database rispondano. Non richiede autenticazione.
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                    - ok
+                  time:
+                    type: string
+                    description: Istante ISO 8601 con fuso
+                    format: date-time
+                required:
+                - status
+                - time
+        '503':
+          description: unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /openapi.json:
+    get:
+      tags:
+      - Meta
+      summary: Recupera la specifica OpenAPI
+      description: Restituisce la specifica OpenAPI 3.1 di questa API. Non richiede autenticazione.
+      operationId: getOpenApi
+      security: []
+      responses:
+        '200':
+          description: OpenAPI 3.1
+          content:
+            application/json: {}
+  /venues:
+    get:
+      tags:
+      - Locali
+      summary: Elenca i locali accessibili alla chiave
+      security:
+      - apiKey: []
+      x-required-scope: venues:read
+      description: 'Scope: `venues:read`'
+      operationId: listVenues
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Venue'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Recupera un locale
+      security:
+      - apiKey: []
+      x-required-scope: venues:read
+      description: 'Scope: `venues:read`'
+      operationId: getVenue
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  venue:
+                    $ref: '#/components/schemas/Venue'
+                required:
+                - venue
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/shifts:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca i turni di un locale
+      security:
+      - apiKey: []
+      x-required-scope: venues:read
+      description: 'Scope: `venues:read`'
+      operationId: listShifts
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Shift'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/closures:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca le chiusure di un locale
+      security:
+      - apiKey: []
+      x-required-scope: venues:read
+      description: 'Scope: `venues:read`'
+      operationId: listClosures
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Closure'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/areas:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca le sale di un locale
+      security:
+      - apiKey: []
+      x-required-scope: floor:read
+      description: 'Scope: `floor:read`'
+      operationId: listAreas
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Area'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/tables:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca i tavoli della pianta attiva
+      security:
+      - apiKey: []
+      x-required-scope: floor:read
+      description: 'Scope: `floor:read`'
+      operationId: listTables
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Table'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/floor-plans:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca le piante di un locale
+      security:
+      - apiKey: []
+      x-required-scope: floor:read
+      description: 'Scope: `floor:read`'
+      operationId: listFloorPlans
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FloorPlan'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/floor-plans/{planId}:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Recupera una pianta
+      security:
+      - apiKey: []
+      x-required-scope: floor:read
+      description: 'Scope: `floor:read`'
+      operationId: getFloorPlan
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: planId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  floorPlan:
+                    $ref: '#/components/schemas/FloorPlanDetail'
+                required:
+                - floorPlan
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/floor:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Recupera lo stato della sala
+      security:
+      - apiKey: []
+      x-required-scope: floor:read
+      description: 'Scope: `floor:read` e `reservations:read`'
+      operationId: getLiveFloor
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveFloor'
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/turn-time-rules:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca le regole di durata del tavolo
+      security:
+      - apiKey: []
+      x-required-scope: venues:read
+      description: 'Scope: `venues:read`'
+      operationId: listTurnTimeRules
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TurnTimeRule'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /venues/{id}/pacing-rules:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca le regole di ritmo degli arrivi
+      security:
+      - apiKey: []
+      x-required-scope: venues:read
+      description: 'Scope: `venues:read`'
+      operationId: listPacingRules
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PacingRule'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /service-tags:
+    get:
+      tags:
+      - Configurazione del locale
+      summary: Elenca i tag di servizio
+      security:
+      - apiKey: []
+      x-required-scope: guests:read
+      description: 'Scope: `guests:read`'
+      operationId: listServiceTags
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceTag'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /availability:
+    get:
+      tags:
+      - Disponibilità
+      summary: Verifica la disponibilità
+      security:
+      - apiKey: []
+      x-required-scope: reservations:read
+      description: 'Scope: `reservations:read`'
+      operationId: getAvailability
+      parameters:
+      - name: venueId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: serviceDate
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: time
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+      - name: partySize
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  venueId:
+                    type: string
+                    format: uuid
+                  serviceDate:
+                    type: string
+                    description: Giorno di servizio, YYYY-MM-DD
+                    format: date
+                  partySize:
+                    type: integer
+                  timezone:
+                    type: string
+                    description: Fuso IANA del locale
+                  available:
+                    type: boolean
+                  reason:
+                    type: string
+                    description: Perché no, se non c'è posto
+                  alternatives:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Proposal'
+                required:
+                - venueId
+                - serviceDate
+                - partySize
+                - timezone
+                - available
+                - alternatives
+                description: Se available, porta anche i campi della proposta (time, startsAt...)
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /availability/slots:
+    get:
+      tags:
+      - Disponibilità
+      summary: Elenca gli orari disponibili
+      security:
+      - apiKey: []
+      x-required-scope: reservations:read
+      description: 'Scope: `reservations:read`. Ogni orario, a passi di 15 minuti dall''apertura del turno,
+        è un orario in cui una prenotazione verrebbe accettata in questo momento.'
+      operationId: listAvailabilitySlots
+      parameters:
+      - name: venueId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: serviceDate
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: partySize
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  venueId:
+                    type: string
+                    format: uuid
+                  serviceDate:
+                    type: string
+                    description: Giorno di servizio, YYYY-MM-DD
+                    format: date
+                  partySize:
+                    type: integer
+                  timezone:
+                    type: string
+                    description: Fuso IANA del locale
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Proposal'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                      description: 'Sempre null: tutto in una pagina'
+                    - type: 'null'
+                required:
+                - venueId
+                - serviceDate
+                - partySize
+                - timezone
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /availability/days:
+    get:
+      tags:
+      - Disponibilità
+      summary: Elenca i giorni disponibili
+      security:
+      - apiKey: []
+      x-required-scope: reservations:read
+      description: 'Scope: `reservations:read`. Intervallo di al massimo 62 giorni, estremi inclusi.'
+      operationId: listAvailabilityDays
+      parameters:
+      - name: venueId
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: partySize
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  venueId:
+                    type: string
+                    format: uuid
+                  from:
+                    type: string
+                    description: Giorno di servizio, YYYY-MM-DD
+                    format: date
+                  to:
+                    type: string
+                    description: Giorno di servizio, YYYY-MM-DD
+                    format: date
+                  partySize:
+                    type: integer
+                  timezone:
+                    type: string
+                    description: Fuso IANA del locale
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        serviceDate:
+                          type: string
+                          description: Giorno di servizio, YYYY-MM-DD
+                          format: date
+                        available:
+                          type: boolean
+                        slotCount:
+                          type: integer
+                          description: Quanti orari di /availability/slots
+                      required:
+                      - serviceDate
+                      - available
+                      - slotCount
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                      description: 'Sempre null: tutto in una pagina'
+                    - type: 'null'
+                required:
+                - venueId
+                - from
+                - to
+                - partySize
+                - timezone
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /reservations:
+    get:
+      tags:
+      - Prenotazioni
+      summary: Elenca le prenotazioni
+      security:
+      - apiKey: []
+      x-required-scope: reservations:read
+      description: 'Scope: `reservations:read`'
+      operationId: listReservations
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: venueId
+        in: query
+        required: false
+        description: Solo questo locale
+        schema:
+          type: string
+          format: uuid
+      - name: serviceDate
+        in: query
+        required: false
+        description: Un giorno di servizio, in alternativa a from/to
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: from
+        in: query
+        required: false
+        description: Dal giorno di servizio (compreso)
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: to
+        in: query
+        required: false
+        description: Al giorno di servizio (compreso)
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: status
+        in: query
+        required: false
+        description: Uno o più stati
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - created
+            - confirmed
+            - arrived
+            - seated
+            - released
+            - completed
+            - no_show
+            - cancelled
+        style: form
+        explode: true
+      - name: guestId
+        in: query
+        required: false
+        description: Solo questo ospite
+        schema:
+          type: string
+          format: uuid
+      - name: source
+        in: query
+        required: false
+        description: Solo questa origine
+        schema:
+          type: string
+          enum:
+          - phone
+          - voice_agent
+          - floor
+          - waitlist
+          - walk_in
+          - api
+          - import
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      - name: externalRef
+        in: query
+        required: false
+        description: Solo quella col tuo identificativo
+        schema:
+          type: string
+          maxLength: 200
+      - name: expand
+        in: query
+        required: false
+        description: guest aggiunge guestDetails (serve anche guests:read), table aggiunge table
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - guest
+            - table
+        style: form
+        explode: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Reservation'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Prenotazioni
+      summary: Crea una prenotazione
+      security:
+      - apiKey: []
+      x-required-scope: reservations:write
+      description: 'Scope: `reservations:write`'
+      operationId: createReservation
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                venueId:
+                  type: string
+                  format: uuid
+                serviceDate:
+                  type: string
+                  description: Giorno di servizio, YYYY-MM-DD
+                  format: date
+                time:
+                  type: string
+                  description: Ora locale del locale, HH:mm
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                partySize:
+                  type: integer
+                  minimum: 1
+                phone:
+                  type: string
+                  description: 'Telefono dell''ospite: lo riconosce o lo crea'
+                guestName:
+                  type: string
+                  maxLength: 200
+                email:
+                  type: string
+                  description: Solo con phone; riempie l'ospite se non l'ha già
+                  format: email
+                  maxLength: 254
+                firstName:
+                  type: string
+                  description: Solo con phone; riempie l'ospite se non l'ha già
+                  minLength: 1
+                  maxLength: 100
+                lastName:
+                  type: string
+                  description: Solo con phone; riempie l'ospite se non l'ha già
+                  minLength: 1
+                  maxLength: 100
+                serviceTags:
+                  type: array
+                  maxItems: 20
+                  items:
+                    type: string
+                    description: Nome di un tag del catalogo
+                    minLength: 1
+                    maxLength: 100
+                  description: 'Solo con phone: si aggiungono all''ospite; un nome fuori catalogo è un
+                    400'
+                notes:
+                  type: string
+                channel:
+                  type: string
+                  description: 'Da dove arriva, es. sito o Google: finisce in sourceDetail'
+                  maxLength: 100
+                externalRef:
+                  type: string
+                  description: Il tuo identificativo, unico nella tua organizzazione
+                  maxLength: 200
+              required:
+              - venueId
+              - serviceDate
+              - time
+              - partySize
+      responses:
+        '200':
+          description: Già creata con la stessa Idempotency-Key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    anyOf:
+                    - $ref: '#/components/schemas/Reservation'
+                    - $ref: '#/components/schemas/WidgetReservation'
+                required:
+                - reservation
+        '201':
+          description: 'Creata (dalla chiave pubblica del widget: WidgetReservation)'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    anyOf:
+                    - $ref: '#/components/schemas/Reservation'
+                    - $ref: '#/components/schemas/WidgetReservation'
+                required:
+                - reservation
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: no_availability, conflict, idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /reservations/{id}:
+    get:
+      tags:
+      - Prenotazioni
+      summary: Recupera una prenotazione
+      security:
+      - apiKey: []
+      x-required-scope: reservations:read
+      description: 'Scope: `reservations:read`'
+      operationId: getReservation
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: expand
+        in: query
+        required: false
+        description: guest aggiunge guestDetails (serve anche guests:read), table aggiunge table
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - guest
+            - table
+        style: form
+        explode: false
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    $ref: '#/components/schemas/Reservation'
+                required:
+                - reservation
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      tags:
+      - Prenotazioni
+      summary: Aggiorna una prenotazione
+      security:
+      - apiKey: []
+      x-required-scope: reservations:write
+      description: 'Scope: `reservations:write`. Conferma, sposta o cambia stato, tavolo o ospite. Gli
+        stati della sala (arrived, seated, released, completed, no_show) e tableId/tableCombinationId
+        chiedono anche `floor:write`. Per annullare si usa DELETE.'
+      operationId: updateReservation
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: false
+        description: 'L''updatedAt letto: la modifica passa solo se nessuno ha scritto dopo'
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serviceDate:
+                  type: string
+                  description: Giorno di servizio, YYYY-MM-DD
+                  format: date
+                time:
+                  type: string
+                  description: Ora locale del locale, HH:mm
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                partySize:
+                  type: integer
+                  minimum: 1
+                notes:
+                  anyOf:
+                  - type: string
+                  - type: 'null'
+                status:
+                  type: string
+                  description: Solo le transizioni ammesse; lo stesso stato non cambia niente
+                  enum:
+                  - confirmed
+                  - arrived
+                  - seated
+                  - released
+                  - completed
+                  - no_show
+                tableId:
+                  anyOf:
+                  - type: string
+                    description: Il tavolo; null lo toglie
+                    format: uuid
+                  - type: 'null'
+                tableCombinationId:
+                  anyOf:
+                  - type: string
+                    description: L'unione di tavoli, in alternativa a tableId
+                    format: uuid
+                  - type: 'null'
+                guestId:
+                  anyOf:
+                  - type: string
+                    description: L'ospite da collegare; null lo stacca
+                    format: uuid
+                  - type: 'null'
+                externalRef:
+                  anyOf:
+                  - type: string
+                    description: Il tuo identificativo; null lo toglie
+                    minLength: 1
+                    maxLength: 200
+                  - type: 'null'
+                version:
+                  type: string
+                  description: 'In alternativa a If-Match: l''updatedAt letto'
+                  format: date-time
+              required: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    $ref: '#/components/schemas/Reservation'
+                required:
+                - reservation
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: no_availability, conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Prenotazioni
+      summary: Annulla una prenotazione
+      security:
+      - apiKey: []
+      x-required-scope: reservations:write
+      description: 'Scope: `reservations:write`. Porta la prenotazione allo stato `cancelled`. Se è già
+        `cancelled`, risponde 200 senza effetti. Dagli stati seated, released, completed e no_show risponde
+        409 conflict con details.allowedTransitions.'
+      operationId: cancelReservation
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    $ref: '#/components/schemas/Reservation'
+                required:
+                - reservation
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /waitlist:
+    get:
+      tags:
+      - Lista d'attesa
+      summary: Elenca le voci della lista d'attesa
+      security:
+      - apiKey: []
+      x-required-scope: waitlist:read
+      description: 'Scope: `waitlist:read`'
+      operationId: listWaitlistEntries
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: venueId
+        in: query
+        required: false
+        description: Solo questo locale
+        schema:
+          type: string
+          format: uuid
+      - name: serviceDate
+        in: query
+        required: false
+        description: Un giorno di servizio, in alternativa a from/to
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: from
+        in: query
+        required: false
+        description: Dal giorno di servizio (compreso)
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: to
+        in: query
+        required: false
+        description: Al giorno di servizio (compreso)
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: status
+        in: query
+        required: false
+        description: Uno o più stati
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - waiting
+            - called
+            - converted
+            - cancelled
+        style: form
+        explode: true
+      - name: guestId
+        in: query
+        required: false
+        description: Solo questo ospite
+        schema:
+          type: string
+          format: uuid
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WaitlistEntry'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Lista d'attesa
+      summary: Crea una voce in lista d'attesa
+      security:
+      - apiKey: []
+      x-required-scope: waitlist:write
+      description: 'Scope: `waitlist:write`'
+      operationId: createWaitlistEntry
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                venueId:
+                  type: string
+                  format: uuid
+                serviceDate:
+                  type: string
+                  description: Giorno di servizio, YYYY-MM-DD
+                  format: date
+                partySize:
+                  type: integer
+                  minimum: 1
+                earliestTime:
+                  type: string
+                  description: Ora locale del locale, HH:mm
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                latestTime:
+                  type: string
+                  description: Ora locale del locale, HH:mm
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                phone:
+                  type: string
+                guestName:
+                  type: string
+                  maxLength: 200
+              required:
+              - venueId
+              - serviceDate
+              - partySize
+              - earliestTime
+              - latestTime
+              - phone
+      responses:
+        '200':
+          description: Già creata con la stessa Idempotency-Key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entry:
+                    $ref: '#/components/schemas/WaitlistEntry'
+                required:
+                - entry
+        '201':
+          description: Creata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entry:
+                    $ref: '#/components/schemas/WaitlistEntry'
+                required:
+                - entry
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /waitlist/{id}:
+    get:
+      tags:
+      - Lista d'attesa
+      summary: Recupera una voce della lista d'attesa
+      security:
+      - apiKey: []
+      x-required-scope: waitlist:read
+      description: 'Scope: `waitlist:read`'
+      operationId: getWaitlistEntry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entry:
+                    $ref: '#/components/schemas/WaitlistEntry'
+                required:
+                - entry
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      tags:
+      - Lista d'attesa
+      summary: Aggiorna una voce della lista d'attesa
+      security:
+      - apiKey: []
+      x-required-scope: waitlist:write
+      description: 'Scope: `waitlist:write`. Modifica coperti o fascia oraria. Una voce già richiamata
+        torna in attesa. Una voce convertita o rimossa risponde 409.'
+      operationId: updateWaitlistEntry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: false
+        description: 'L''updatedAt letto: la modifica passa solo se nessuno ha scritto dopo'
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                partySize:
+                  type: integer
+                  minimum: 1
+                earliestTime:
+                  type: string
+                  description: Ora locale del locale, HH:mm
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                latestTime:
+                  type: string
+                  description: Ora locale del locale, HH:mm
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                version:
+                  type: string
+                  description: 'In alternativa a If-Match: l''updatedAt letto'
+                  format: date-time
+              required: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entry:
+                    $ref: '#/components/schemas/WaitlistEntry'
+                required:
+                - entry
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Lista d'attesa
+      summary: Rimuovi una voce dalla lista d'attesa
+      security:
+      - apiKey: []
+      x-required-scope: waitlist:write
+      description: 'Scope: `waitlist:write`. Porta la voce allo stato `cancelled` ed emette l''evento
+        waitlist_entry_cancelled. La richiesta ripetuta non ha effetti; una voce già convertita risponde
+        409.'
+      operationId: cancelWaitlistEntry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entry:
+                    $ref: '#/components/schemas/WaitlistEntry'
+                required:
+                - entry
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /waitlist/{id}/convert:
+    post:
+      tags:
+      - Lista d'attesa
+      summary: Converti una voce in prenotazione
+      security:
+      - apiKey: []
+      x-required-scope: waitlist:write
+      description: 'Scope: `waitlist:write` e `reservations:write`. La prenotazione ha lo stesso ospite
+        e gli stessi coperti; l''orario è quello del richiamo, se c''è stato, altrimenti l''inizio della
+        fascia. Una voce già convertita risponde 200 con la sua prenotazione.'
+      operationId: convertWaitlistEntry
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Già convertita
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    $ref: '#/components/schemas/Reservation'
+                required:
+                - reservation
+        '201':
+          description: Convertita
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reservation:
+                    $ref: '#/components/schemas/Reservation'
+                required:
+                - reservation
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: no_availability, conflict, idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /guests:
+    get:
+      tags:
+      - Ospiti
+      summary: Elenca gli ospiti
+      security:
+      - apiKey: []
+      x-required-scope: guests:read
+      description: 'Scope: `guests:read`'
+      operationId: listGuests
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: q
+        in: query
+        required: false
+        description: Nome, email o cifre del telefono (almeno 3, al massimo 200 caratteri; fino a 8 parole)
+        schema:
+          type: string
+      - name: phone
+        in: query
+        required: false
+        description: Un telefono, qualunque forma
+        schema:
+          type: string
+      - name: email
+        in: query
+        required: false
+        description: Un'email
+        schema:
+          type: string
+      - name: externalRef
+        in: query
+        required: false
+        description: Il tuo identificativo
+        schema:
+          type: string
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Guest'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+      - Ospiti
+      summary: Crea o aggiorna un ospite
+      security:
+      - apiKey: []
+      x-required-scope: guests:write
+      description: 'Scope: `guests:write`. Crea l''ospite o aggiorna quello con lo stesso telefono. Risponde
+        201 se l''ospite è nuovo, 200 se il telefono esiste già (i campi inviati vengono scritti) o se
+        la stessa Idempotency-Key ritrova la richiesta precedente.'
+      operationId: upsertGuest
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  description: 'Il telefono, qualunque forma: diventa E.164'
+                name:
+                  anyOf:
+                  - type: string
+                    description: Il nome come lo si chiama
+                    maxLength: 200
+                  - type: 'null'
+                firstName:
+                  anyOf:
+                  - type: string
+                    description: Nome
+                    maxLength: 100
+                  - type: 'null'
+                lastName:
+                  anyOf:
+                  - type: string
+                    description: Cognome
+                    maxLength: 100
+                  - type: 'null'
+                email:
+                  anyOf:
+                  - type: string
+                    description: Email
+                    maxLength: 254
+                  - type: 'null'
+                allergies:
+                  anyOf:
+                  - type: string
+                    description: Allergie
+                    maxLength: 2000
+                  - type: 'null'
+                notes:
+                  anyOf:
+                  - type: string
+                    description: Note
+                    maxLength: 2000
+                  - type: 'null'
+                externalRef:
+                  anyOf:
+                  - type: string
+                    description: Il tuo identificativo, unico nell'organizzazione
+                    maxLength: 200
+                  - type: 'null'
+              required:
+              - phone
+      responses:
+        '200':
+          description: Aggiornato o ritrovato
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  guest:
+                    $ref: '#/components/schemas/Guest'
+                required:
+                - guest
+        '201':
+          description: Creato
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  guest:
+                    $ref: '#/components/schemas/Guest'
+                required:
+                - guest
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: conflict, idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /guests/lookup:
+    get:
+      tags:
+      - Ospiti
+      summary: Cerca un ospite per telefono
+      security:
+      - apiKey: []
+      x-required-scope: guests:read
+      description: 'Scope: `guests:read`'
+      operationId: lookupGuest
+      parameters:
+      - name: phone
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: object
+                  properties:
+                    found:
+                      const: true
+                    guest:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        phone:
+                          type: string
+                          description: E.164
+                        name:
+                          anyOf:
+                          - type: string
+                          - type: 'null'
+                        allergies:
+                          anyOf:
+                          - type: string
+                          - type: 'null'
+                        notes:
+                          anyOf:
+                          - type: string
+                          - type: 'null'
+                        visitCount:
+                          type: integer
+                        noShowCount:
+                          type: integer
+                      required:
+                      - id
+                      - phone
+                      - name
+                      - allergies
+                      - notes
+                      - visitCount
+                      - noShowCount
+                  required:
+                  - found
+                  - guest
+                - type: object
+                  properties:
+                    found:
+                      const: false
+                    phone:
+                      type: string
+                      description: E.164
+                  required:
+                  - found
+                  - phone
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /guests/{id}:
+    get:
+      tags:
+      - Ospiti
+      summary: Recupera un ospite
+      security:
+      - apiKey: []
+      x-required-scope: guests:read
+      description: 'Scope: `guests:read`'
+      operationId: getGuest
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  guest:
+                    $ref: '#/components/schemas/Guest'
+                required:
+                - guest
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      tags:
+      - Ospiti
+      summary: Aggiorna un ospite
+      security:
+      - apiKey: []
+      x-required-scope: guests:write
+      description: 'Scope: `guests:write`. Aggiorna la scheda, i consensi e i tag di campagna. null o
+        "" rimuove un campo. Se SQUADD è collegato all''organizzazione, consents e campaignTags appartengono
+        a SQUADD e la modifica risponde 403.'
+      operationId: updateGuest
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: false
+        description: 'L''updatedAt letto: la modifica passa solo se nessuno ha scritto dopo'
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone:
+                  type: string
+                  description: Il telefono nuovo, unico nell'organizzazione
+                name:
+                  anyOf:
+                  - type: string
+                    description: Il nome come lo si chiama
+                    maxLength: 200
+                  - type: 'null'
+                firstName:
+                  anyOf:
+                  - type: string
+                    description: Nome
+                    maxLength: 100
+                  - type: 'null'
+                lastName:
+                  anyOf:
+                  - type: string
+                    description: Cognome
+                    maxLength: 100
+                  - type: 'null'
+                email:
+                  anyOf:
+                  - type: string
+                    description: Email
+                    maxLength: 254
+                  - type: 'null'
+                allergies:
+                  anyOf:
+                  - type: string
+                    description: Allergie
+                    maxLength: 2000
+                  - type: 'null'
+                notes:
+                  anyOf:
+                  - type: string
+                    description: Note
+                    maxLength: 2000
+                  - type: 'null'
+                externalRef:
+                  anyOf:
+                  - type: string
+                    description: Il tuo identificativo, unico nell'organizzazione
+                    maxLength: 200
+                  - type: 'null'
+                consents:
+                  type: object
+                  description: I consensi, sostituiti per intero
+                campaignTags:
+                  type: array
+                  description: I tag di campagna, sostituiti per intero
+                  maxItems: 100
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+                version:
+                  type: string
+                  description: 'In alternativa a If-Match: l''updatedAt letto'
+                  format: date-time
+              required: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  guest:
+                    $ref: '#/components/schemas/Guest'
+                required:
+                - guest
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+      - Ospiti
+      summary: Elimina un ospite
+      security:
+      - apiKey: []
+      x-required-scope: guests:write
+      description: 'Scope: `guests:write`. Sposta l''ospite nel Cestino; dopo 30 giorni viene eliminato
+        definitivamente.'
+      operationId: deleteGuest
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '204':
+          description: Nel Cestino
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /guests/{id}/tags:
+    put:
+      tags:
+      - Ospiti
+      summary: Imposta i tag di servizio di un ospite
+      security:
+      - apiKey: []
+      x-required-scope: guests:write
+      description: 'Scope: `guests:write`. Sostituisce i tag dell''ospite; i nomi vengono dal catalogo
+        (GET /service-tags). [] li rimuove tutti.'
+      operationId: setGuestServiceTags
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                serviceTags:
+                  type: array
+                  description: I nomi dei tag, dopo sono esattamente questi
+                  maxItems: 50
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 100
+              required:
+              - serviceTags
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  guest:
+                    $ref: '#/components/schemas/Guest'
+                required:
+                - guest
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /guests/{id}/service-card:
+    get:
+      tags:
+      - Ospiti
+      summary: Recupera la scheda di servizio di un ospite
+      security:
+      - apiKey: []
+      x-required-scope: guests:read
+      description: 'Scope: `guests:read`. Nome, allergie e tag di servizio dell''ospite.'
+      operationId: getGuestServiceCard
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  serviceCard:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      name:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                      allergies:
+                        anyOf:
+                        - type: string
+                        - type: 'null'
+                      allergens:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                          - gluten
+                          - crustaceans
+                          - eggs
+                          - fish
+                          - peanuts
+                          - soybeans
+                          - milk
+                          - nuts
+                          - celery
+                          - mustard
+                          - sesame
+                          - sulphites
+                          - lupin
+                          - molluscs
+                      serviceTags:
+                        type: array
+                        items:
+                          type: string
+                    required:
+                    - id
+                    - name
+                    - allergies
+                    - allergens
+                    - serviceTags
+                required:
+                - serviceCard
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /events:
+    get:
+      tags:
+      - Eventi e report
+      summary: Elenca gli eventi
+      security:
+      - apiKey: []
+      x-required-scope: events:read
+      description: 'Scope: `events:read`. Ogni evento ha la stessa busta dei webhook.'
+      operationId: listEvents
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: since
+        in: query
+        required: false
+        description: Solo gli eventi dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      - name: type
+        in: query
+        required: false
+        description: Uno o più tipi
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - reservation_created
+            - reservation_confirmed
+            - reservation_modified
+            - reservation_cancelled
+            - guest_arrived
+            - guest_seated
+            - table_released
+            - reservation_late
+            - reservation_no_show
+            - meal_completed
+            - waitlist_entry_created
+            - compatible_table_freed
+            - guest_profile_changed
+            - waitlist_entry_cancelled
+            - reservation_needs_attention
+        style: form
+        explode: true
+      - name: venueId
+        in: query
+        required: false
+        description: Solo questo locale
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /reports/period:
+    get:
+      tags:
+      - Eventi e report
+      summary: Recupera il consuntivo di un periodo
+      security:
+      - apiKey: []
+      x-required-scope: reports:read
+      description: 'Scope: `reports:read`. Una riga per giorno del periodo.'
+      operationId: getPeriodReport
+      parameters:
+      - name: venueId
+        in: query
+        required: true
+        description: Il locale
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        description: Primo giorno di servizio
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: to
+        in: query
+        required: true
+        description: Ultimo giorno di servizio (al massimo 367 giorni)
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeriodReport'
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /reports/eod:
+    get:
+      tags:
+      - Eventi e report
+      summary: Recupera la chiusura di fine serata
+      security:
+      - apiKey: []
+      x-required-scope: reports:read
+      description: 'Scope: `reports:read`. Include il confronto con lo stesso giorno della settimana precedente.'
+      operationId: getEndOfDayReport
+      parameters:
+      - name: venueId
+        in: query
+        required: true
+        description: Il locale
+        schema:
+          type: string
+          format: uuid
+      - name: serviceDate
+        in: query
+        required: true
+        description: Il giorno di servizio
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndOfDayReport'
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /exports/reservations:
+    get:
+      tags:
+      - Eventi e report
+      summary: Esporta le prenotazioni
+      security:
+      - apiKey: []
+      x-required-scope: reports:read
+      description: 'Scope: `reports:read` e `reservations:read`. Risposta in streaming: CSV (RFC 4180)
+        o una prenotazione JSON per riga.'
+      operationId: exportReservations
+      parameters:
+      - name: format
+        in: query
+        required: false
+        description: csv o ndjson
+        schema:
+          type: string
+          enum:
+          - csv
+          - ndjson
+          default: csv
+      - name: venueId
+        in: query
+        required: false
+        description: Solo questo locale
+        schema:
+          type: string
+          format: uuid
+      - name: serviceDate
+        in: query
+        required: false
+        description: Un giorno di servizio, in alternativa a from/to
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: from
+        in: query
+        required: false
+        description: Dal giorno di servizio (compreso)
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: to
+        in: query
+        required: false
+        description: Al giorno di servizio (compreso)
+        schema:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+      - name: status
+        in: query
+        required: false
+        description: Uno o più stati
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - created
+            - confirmed
+            - arrived
+            - seated
+            - released
+            - completed
+            - no_show
+            - cancelled
+        style: form
+        explode: true
+      - name: guestId
+        in: query
+        required: false
+        description: Solo questo ospite
+        schema:
+          type: string
+          format: uuid
+      - name: source
+        in: query
+        required: false
+        description: Solo questa origine
+        schema:
+          type: string
+          enum:
+          - phone
+          - voice_agent
+          - floor
+          - waitlist
+          - walk_in
+          - api
+          - import
+      - name: updatedSince
+        in: query
+        required: false
+        description: Solo ciò che è cambiato dopo questo istante
+        schema:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      responses:
+        '200':
+          description: Le prenotazioni, una per riga
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/x-ndjson:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /webhook-deliveries:
+    get:
+      tags:
+      - Webhook
+      summary: Elenca le consegne dei webhook
+      security:
+      - apiKey: []
+      x-required-scope: webhooks:read
+      description: 'Scope: `webhooks:read`. Le consegne con `status=discarded` formano la coda di scarto.'
+      operationId: listWebhookDeliveries
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: status
+        in: query
+        required: false
+        description: Uno o più stati
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - pending
+            - delivered
+            - discarded
+        style: form
+        explode: true
+      - name: venueId
+        in: query
+        required: false
+        description: Solo questo locale
+        schema:
+          type: string
+          format: uuid
+      - name: endpointId
+        in: query
+        required: false
+        description: Solo questa destinazione
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookDelivery'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /webhook-deliveries/{id}/redeliver:
+    post:
+      tags:
+      - Webhook
+      summary: Reinvia una consegna
+      security:
+      - apiKey: []
+      x-required-scope: webhooks:write
+      description: 'Scope: `webhooks:write`. Rimette in coda una consegna conclusa, con la stessa chiave
+        di idempotenza.'
+      operationId: redeliverWebhook
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      responses:
+        '200':
+          description: 'La stessa Idempotency-Key: la consegna di allora'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  delivery:
+                    $ref: '#/components/schemas/WebhookDelivery'
+                required:
+                - delivery
+        '201':
+          description: Di nuovo in coda
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  delivery:
+                    $ref: '#/components/schemas/WebhookDelivery'
+                required:
+                - delivery
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: conflict, idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /webhook-endpoints:
+    get:
+      tags:
+      - Webhook
+      summary: Elenca le destinazioni dei webhook
+      security:
+      - apiKey: []
+      x-required-scope: webhooks:read
+      description: 'Scope: `webhooks:read`. Le destinazioni dei locali accessibili alla chiave.'
+      operationId: listWebhookEndpoints
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        description: Righe per pagina
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: cursor
+        in: query
+        required: false
+        description: Il nextCursor della risposta precedente
+        schema:
+          type: string
+      - name: venueId
+        in: query
+        required: false
+        description: Solo questo locale
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookEndpoint'
+                  nextCursor:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                required:
+                - data
+                - nextCursor
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /webhook-endpoints/test:
+    post:
+      tags:
+      - Webhook
+      summary: Invia un evento di prova
+      security:
+      - apiKey: []
+      x-required-scope: webhooks:write
+      description: 'Scope: `webhooks:write`. Invia subito un evento di prova firmato, fuori dalla coda:
+        nessun nuovo tentativo, l''esito è nella risposta.'
+      operationId: testWebhookEndpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endpointId:
+                  type: string
+                  format: uuid
+              required:
+              - endpointId
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endpointId:
+                    type: string
+                    format: uuid
+                  delivered:
+                    type: boolean
+                  statusCode:
+                    anyOf:
+                    - type: integer
+                    - type: 'null'
+                  error:
+                    anyOf:
+                    - type: string
+                    - type: 'null'
+                  event:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        description: test:<eventId>, anche nell'Idempotency-Key
+                      eventId:
+                        type: string
+                        format: uuid
+                      type:
+                        type: string
+                        const: webhook_test
+                      createdAt:
+                        type: string
+                        description: Istante ISO 8601 con fuso
+                        format: date-time
+                      venueId:
+                        type: string
+                        format: uuid
+                      apiVersion:
+                        type: string
+                        const: v1
+                      data:
+                        type: object
+                    required:
+                    - id
+                    - eventId
+                    - type
+                    - createdAt
+                    - venueId
+                    - apiVersion
+                    - data
+                required:
+                - endpointId
+                - delivered
+                - statusCode
+                - error
+                - event
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /webhook-endpoints/{id}/rotate-secret:
+    post:
+      tags:
+      - Webhook
+      summary: Ruota il segreto di firma
+      security:
+      - apiKey: []
+      x-required-scope: webhooks:write
+      description: 'Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta valido
+        per `overlapMinutes` minuti.'
+      operationId: rotateWebhookSecret
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                overlapMinutes:
+                  type: integer
+                  minimum: 0
+                  maximum: 10080
+                  default: 1440
+              required: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  endpointId:
+                    type: string
+                    format: uuid
+                  secretVersion:
+                    type: integer
+                  secret:
+                    type: string
+                    description: 'Il segreto nuovo: si vede solo qui'
+                  previousSecretExpiresAt:
+                    type: string
+                    description: Fino a quando firma anche il segreto di prima
+                    format: date-time
+                required:
+                - endpointId
+                - secretVersion
+                - secret
+                - previousSecretExpiresAt
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /imports/guests:
+    post:
+      tags:
+      - Import
+      summary: Importa ospiti
+      security:
+      - apiKey: []
+      x-required-scope: imports:write
+      description: 'Scope: `imports:write`. Fino a 1000 righe per richiesta. Crea o aggiorna ogni ospite
+        per telefono. Una riga storta non ferma le altre: finisce in `rejections` col motivo. Chi importa
+        anche le prenotazioni passate non manda visitCount/noShowCount (si conterebbero due volte).'
+      operationId: importGuests
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items:
+                    type: object
+                    properties:
+                      phone:
+                        type: string
+                        description: 'Il telefono, qualunque forma: la chiave con cui si crea o si aggiorna'
+                      name:
+                        anyOf:
+                        - type: string
+                          description: Il nome come lo si chiama
+                          maxLength: 200
+                        - type: 'null'
+                      firstName:
+                        anyOf:
+                        - type: string
+                          description: Nome
+                          maxLength: 100
+                        - type: 'null'
+                      lastName:
+                        anyOf:
+                        - type: string
+                          description: Cognome
+                          maxLength: 100
+                        - type: 'null'
+                      email:
+                        anyOf:
+                        - type: string
+                          description: Email
+                          maxLength: 254
+                        - type: 'null'
+                      allergies:
+                        anyOf:
+                        - type: string
+                          description: Allergie
+                          maxLength: 2000
+                        - type: 'null'
+                      notes:
+                        anyOf:
+                        - type: string
+                          description: Note
+                          maxLength: 2000
+                        - type: 'null'
+                      externalRef:
+                        anyOf:
+                        - type: string
+                          description: Il tuo identificativo, unico nell'organizzazione
+                          maxLength: 200
+                        - type: 'null'
+                      visitCount:
+                        type: integer
+                        minimum: 0
+                        maximum: 100000
+                        description: 'Visite nel gestionale di prima: si sommano a quelle contate qui'
+                      noShowCount:
+                        type: integer
+                        minimum: 0
+                        maximum: 100000
+                        description: Mancate presentazioni nel gestionale di prima
+                      lastVisitAt:
+                        anyOf:
+                        - type: string
+                          description: Ultima visita nel gestionale di prima, non nel futuro
+                          format: date-time
+                        - type: 'null'
+                    required:
+                    - phone
+              required:
+              - rows
+      responses:
+        '200':
+          description: Ritrovato con la stessa Idempotency-Key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  import:
+                    $ref: '#/components/schemas/Import'
+                required:
+                - import
+        '201':
+          description: 'Import eseguito: ospiti creati o aggiornati, righe scartate col motivo'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  import:
+                    $ref: '#/components/schemas/Import'
+                required:
+                - import
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /imports/reservations:
+    post:
+      tags:
+      - Import
+      summary: Importa prenotazioni
+      security:
+      - apiKey: []
+      x-required-scope: imports:write
+      description: 'Scope: `imports:write`. Fino a 1000 righe per richiesta, passate e future. Origine
+        `import`. Il passato entra nel suo stato finale, senza controllo di disponibilità e senza tavolo;
+        il futuro passa dal motore come ogni prenotazione. Nessuna automazione e nessun webhook partono.'
+      operationId: importReservations
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rows:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items:
+                    type: object
+                    properties:
+                      venueId:
+                        type: string
+                        format: uuid
+                      serviceDate:
+                        type: string
+                        description: Giorno di servizio, YYYY-MM-DD
+                        format: date
+                      time:
+                        type: string
+                        description: Ora locale del locale, HH:mm
+                        pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                      partySize:
+                        type: integer
+                        minimum: 1
+                        maximum: 500
+                      status:
+                        type: string
+                        enum:
+                        - created
+                        - confirmed
+                        - completed
+                        - no_show
+                        - cancelled
+                        description: Nel passato completed, no_show o cancelled; nel futuro created, confirmed
+                          o cancelled
+                      phone:
+                        type: string
+                        description: 'Il telefono dell''ospite: riconosciuto, o creato'
+                      guestName:
+                        anyOf:
+                        - type: string
+                          description: Il nome, se l'ospite nasce adesso
+                          maxLength: 200
+                        - type: 'null'
+                      notes:
+                        anyOf:
+                        - type: string
+                          description: Note
+                          maxLength: 2000
+                        - type: 'null'
+                      externalRef:
+                        anyOf:
+                        - type: string
+                          description: 'Il tuo identificativo: reimportare la stessa riga è un conflict'
+                          maxLength: 200
+                        - type: 'null'
+                      channel:
+                        anyOf:
+                        - type: string
+                          description: 'Da dove arriva: diventa sourceDetail'
+                          maxLength: 100
+                        - type: 'null'
+                      durationMinutes:
+                        type: integer
+                        minimum: 1
+                        maximum: 1440
+                        description: Durata delle righe passate e cancellate, 90 se manca; le future le
+                          decide il motore
+                    required:
+                    - venueId
+                    - serviceDate
+                    - time
+                    - partySize
+                    - status
+              required:
+              - rows
+      responses:
+        '200':
+          description: Ritrovato con la stessa Idempotency-Key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  import:
+                    $ref: '#/components/schemas/Import'
+                required:
+                - import
+        '201':
+          description: 'Import eseguito: prenotazioni create, righe scartate col motivo'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  import:
+                    $ref: '#/components/schemas/Import'
+                required:
+                - import
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /imports/{id}:
+    get:
+      tags:
+      - Import
+      summary: Recupera un import
+      security:
+      - apiKey: []
+      x-required-scope: imports:write
+      description: 'Scope: `imports:write`. Restituisce il resoconto di un import.'
+      operationId: getImport
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  import:
+                    $ref: '#/components/schemas/Import'
+                required:
+                - import
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Il codice su cui ramificare
+            message:
+              type: string
+              description: Per chi legge i log
+            details:
+              type: object
+              description: 'Cosa serve per correggere o riprovare: fields (i campi storti), requiredScope,
+                reason; per no_availability anche alternatives, gli orari vicini nella forma di GET /availability'
+              properties:
+                fields:
+                  type: array
+                  items:
+                    type: string
+                requiredScope:
+                  type: string
+                reason:
+                  type: string
+                alternatives:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Proposal'
+            requestId:
+              type: string
+              description: Lo stesso valore dell'header X-Request-Id
+          required:
+          - code
+          - message
+          - details
+      required:
+      - error
+    Me:
+      type: object
+      properties:
+        organization:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+          required:
+          - id
+          - name
+        apiKey:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            scopes:
+              type: array
+              items:
+                type: string
+                enum:
+                - reservations:read
+                - reservations:write
+                - waitlist:read
+                - waitlist:write
+                - guests:read
+                - guests:write
+                - venues:read
+                - floor:read
+                - floor:write
+                - reports:read
+                - events:read
+                - imports:write
+                - webhooks:read
+                - webhooks:write
+            voiceAgent:
+              type: boolean
+              description: La chiave dell'agente vocale
+          required:
+          - id
+          - name
+          - scopes
+          - voiceAgent
+        rateLimit:
+          type: object
+          properties:
+            limit:
+              type: integer
+              description: Richieste al minuto
+            remaining:
+              type: integer
+            resetAt:
+              type: string
+              description: Quando la finestra riparte
+              format: date-time
+          required:
+          - limit
+          - remaining
+          - resetAt
+        livemode:
+          type: boolean
+          description: Falso per le chiavi dell'organizzazione di prova (gsk_test_)
+        venues:
+          type: array
+          items:
+            $ref: '#/components/schemas/Venue'
+      required:
+      - organization
+      - apiKey
+      - rateLimit
+      - livemode
+      - venues
+    Venue:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        timezone:
+          type: string
+          description: Fuso orario IANA
+          examples:
+          - Europe/Rome
+        noShowToleranceMinutes:
+          type: integer
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - name
+      - timezone
+      - noShowToleranceMinutes
+      - updatedAt
+    Shift:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        openingTime:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        lastSeatingTime:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        closingTime:
+          type: string
+          description: HH:mm; prima dell'apertura = sfora la mezzanotte
+        weekdays:
+          type: array
+          items:
+            type: integer
+            description: 0 = lunedì ... 6 = domenica
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - name
+      - openingTime
+      - lastSeatingTime
+      - closingTime
+      - weekdays
+      - updatedAt
+    Closure:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        weekday:
+          anyOf:
+          - type: integer
+            description: 0 = lunedì ... 6 = domenica
+          - type: 'null'
+        date:
+          anyOf:
+          - type: string
+            description: Giorno di servizio, YYYY-MM-DD
+            format: date
+          - type: 'null'
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - weekday
+      - date
+      - reason
+      - updatedAt
+    Area:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        icon:
+          type: string
+        position:
+          type: integer
+        widthCm:
+          type: integer
+        heightCm:
+          type: integer
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - name
+      - icon
+      - position
+      - widthCm
+      - heightCm
+      - updatedAt
+    Table:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        floorPlanId:
+          type: string
+          format: uuid
+        areaId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        shape:
+          type: string
+          enum:
+          - square
+          - rectangle
+          - round
+          - oval
+        minSeats:
+          type: integer
+        maxSeats:
+          type: integer
+        isBlocked:
+          type: boolean
+        combinationIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Le unioni di cui fa parte
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - floorPlanId
+      - areaId
+      - name
+      - shape
+      - minSeats
+      - maxSeats
+      - isBlocked
+      - combinationIds
+      - updatedAt
+    FloorPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        isActive:
+          type: boolean
+        version:
+          type: integer
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - name
+      - isActive
+      - version
+      - updatedAt
+    FloorPlanDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        isActive:
+          type: boolean
+        version:
+          type: integer
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        areas:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              widthCm:
+                type: integer
+              heightCm:
+                type: integer
+            required:
+            - id
+            - name
+            - widthCm
+            - heightCm
+        tables:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              areaId:
+                type: string
+                format: uuid
+              name:
+                type: string
+              shape:
+                type: string
+                enum:
+                - square
+                - rectangle
+                - round
+                - oval
+              minSeats:
+                type: integer
+              maxSeats:
+                type: integer
+              positionXCm:
+                type: integer
+              positionYCm:
+                type: integer
+              widthCm:
+                type: integer
+                description: Ingombro già ruotato
+              heightCm:
+                type: integer
+                description: Ingombro già ruotato
+              rotationDegrees:
+                type: integer
+              isBlocked:
+                type: boolean
+            required:
+            - id
+            - areaId
+            - name
+            - shape
+            - minSeats
+            - maxSeats
+            - positionXCm
+            - positionYCm
+            - widthCm
+            - heightCm
+            - rotationDegrees
+            - isBlocked
+        combinations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              tableIds:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+            required:
+            - id
+            - tableIds
+      required:
+      - id
+      - name
+      - isActive
+      - version
+      - updatedAt
+      - areas
+      - tables
+      - combinations
+    TurnTimeRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        shiftId:
+          anyOf:
+          - type: string
+            description: null = tutti i turni
+            format: uuid
+          - type: 'null'
+        minPartySize:
+          type: integer
+        maxPartySize:
+          anyOf:
+          - type: integer
+          - type: 'null'
+        turnTimeMinutes:
+          type: integer
+        bufferMinutes:
+          type: integer
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - shiftId
+      - minPartySize
+      - maxPartySize
+      - turnTimeMinutes
+      - bufferMinutes
+      - updatedAt
+    PacingRule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        shiftId:
+          anyOf:
+          - type: string
+            description: null = tutti i turni
+            format: uuid
+          - type: 'null'
+        isEnabled:
+          type: boolean
+        maxCovers:
+          type: integer
+        windowMinutes:
+          type: integer
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - shiftId
+      - isEnabled
+      - maxCovers
+      - windowMinutes
+      - updatedAt
+    ServiceTag:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - name
+      - updatedAt
+    LiveFloor:
+      type: object
+      properties:
+        venueId:
+          type: string
+          format: uuid
+        timezone:
+          type: string
+          description: Fuso orario IANA
+        serviceDate:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        now:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        currentShift:
+          anyOf:
+          - type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              startsAt:
+                type: string
+                description: Istante ISO 8601 con fuso
+                format: date-time
+              endsAt:
+                type: string
+                description: Istante ISO 8601 con fuso
+                format: date-time
+            required:
+            - id
+            - name
+            - startsAt
+            - endsAt
+          - type: 'null'
+        nextShift:
+          anyOf:
+          - type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              startsAt:
+                type: string
+                description: Istante ISO 8601 con fuso
+                format: date-time
+              endsAt:
+                type: string
+                description: Istante ISO 8601 con fuso
+                format: date-time
+            required:
+            - id
+            - name
+            - startsAt
+            - endsAt
+          - type: 'null'
+        floorPlanId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        tables:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              areaId:
+                type: string
+                format: uuid
+              name:
+                type: string
+              minSeats:
+                type: integer
+              maxSeats:
+                type: integer
+              state:
+                type: string
+                enum:
+                - free
+                - expected
+                - late
+                - arrived
+                - seated
+                - overstaying
+                - blocked
+              reservationId:
+                anyOf:
+                - type: string
+                  format: uuid
+                - type: 'null'
+            required:
+            - id
+            - areaId
+            - name
+            - minSeats
+            - maxSeats
+            - state
+            - reservationId
+        reservations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reservation'
+      required:
+      - venueId
+      - timezone
+      - serviceDate
+      - now
+      - currentShift
+      - nextShift
+      - floorPlanId
+      - tables
+      - reservations
+    Proposal:
+      type: object
+      properties:
+        time:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        startsAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        endsAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        turnTimeMinutes:
+          type: integer
+        seats:
+          type: integer
+        overflowsShift:
+          type: boolean
+      required:
+      - time
+      - startsAt
+      - endsAt
+      - turnTimeMinutes
+      - seats
+      - overflowsShift
+    WidgetReservation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        venueId:
+          type: string
+          format: uuid
+        serviceDate:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        time:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        startsAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        endsAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        partySize:
+          type: integer
+        status:
+          type: string
+          enum:
+          - created
+          - confirmed
+          - arrived
+          - seated
+          - released
+          - completed
+          - no_show
+          - cancelled
+      required:
+      - id
+      - venueId
+      - serviceDate
+      - time
+      - startsAt
+      - endsAt
+      - partySize
+      - status
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        venueId:
+          type: string
+          format: uuid
+        serviceDate:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        time:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        startsAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        endsAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        partySize:
+          type: integer
+        status:
+          type: string
+          enum:
+          - created
+          - confirmed
+          - arrived
+          - seated
+          - released
+          - completed
+          - no_show
+          - cancelled
+        tableAssigned:
+          type: boolean
+        needsAttention:
+          type: boolean
+          description: Valida, ma da sistemare in sala
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+        source:
+          type: string
+          enum:
+          - phone
+          - voice_agent
+          - floor
+          - waitlist
+          - walk_in
+          - api
+          - import
+        sourceDetail:
+          anyOf:
+          - type: string
+            description: Nome della chiave o channel
+          - type: 'null'
+        externalRef:
+          anyOf:
+          - type: string
+          - type: 'null'
+        guestId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        updatedAt:
+          type: string
+          description: Anche la versione, per If-Match
+          format: date-time
+        guest:
+          anyOf:
+          - type: object
+            properties:
+              name:
+                anyOf:
+                - type: string
+                - type: 'null'
+              allergies:
+                anyOf:
+                - type: string
+                - type: 'null'
+              allergens:
+                type: array
+                items:
+                  type: string
+                  enum:
+                  - gluten
+                  - crustaceans
+                  - eggs
+                  - fish
+                  - peanuts
+                  - soybeans
+                  - milk
+                  - nuts
+                  - celery
+                  - mustard
+                  - sesame
+                  - sulphites
+                  - lupin
+                  - molluscs
+            required:
+            - name
+            - allergies
+            - allergens
+          - type: 'null'
+        guestDetails:
+          anyOf:
+          - $ref: '#/components/schemas/ReservationGuest'
+          - type: 'null'
+        table:
+          anyOf:
+          - $ref: '#/components/schemas/ReservationTable'
+          - type: 'null'
+      required:
+      - id
+      - venueId
+      - serviceDate
+      - time
+      - startsAt
+      - endsAt
+      - partySize
+      - status
+      - tableAssigned
+      - needsAttention
+      - notes
+      - source
+      - sourceDetail
+      - externalRef
+      - guestId
+      - updatedAt
+      - guest
+    ReservationGuest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone:
+          type: string
+          description: E.164
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+        firstName:
+          anyOf:
+          - type: string
+          - type: 'null'
+        lastName:
+          anyOf:
+          - type: string
+          - type: 'null'
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+        allergies:
+          anyOf:
+          - type: string
+          - type: 'null'
+        allergens:
+          type: array
+          items:
+            type: string
+            enum:
+            - gluten
+            - crustaceans
+            - eggs
+            - fish
+            - peanuts
+            - soybeans
+            - milk
+            - nuts
+            - celery
+            - mustard
+            - sesame
+            - sulphites
+            - lupin
+            - molluscs
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+        visitCount:
+          type: integer
+        noShowCount:
+          type: integer
+        externalRef:
+          anyOf:
+          - type: string
+          - type: 'null'
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - phone
+      - email
+      - firstName
+      - lastName
+      - name
+      - allergies
+      - allergens
+      - notes
+      - visitCount
+      - noShowCount
+      - externalRef
+      - updatedAt
+    ReservationTable:
+      type: object
+      properties:
+        tableId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        tableCombinationId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        tables:
+          type: array
+          description: I tavoli occupati, uno per uno
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              name:
+                type: string
+              minSeats:
+                type: integer
+              maxSeats:
+                type: integer
+            required:
+            - id
+            - name
+            - minSeats
+            - maxSeats
+      required:
+      - tableId
+      - tableCombinationId
+      - tables
+    WaitlistEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        venueId:
+          type: string
+          format: uuid
+        serviceDate:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        partySize:
+          type: integer
+        earliestTime:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        latestTime:
+          type: string
+          description: Ora locale del locale, HH:mm
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        status:
+          type: string
+          enum:
+          - waiting
+          - called
+          - converted
+          - cancelled
+        guestId:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+        reservationId:
+          anyOf:
+          - type: string
+            description: La prenotazione nata dalla conversione
+            format: uuid
+          - type: 'null'
+        createdAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        updatedAt:
+          type: string
+          description: Anche la versione, per If-Match
+          format: date-time
+        guest:
+          anyOf:
+          - type: object
+            properties:
+              name:
+                anyOf:
+                - type: string
+                - type: 'null'
+              phone:
+                type: string
+            required:
+            - name
+            - phone
+          - type: 'null'
+      required:
+      - id
+      - venueId
+      - serviceDate
+      - partySize
+      - earliestTime
+      - latestTime
+      - status
+      - guestId
+      - reservationId
+      - createdAt
+      - updatedAt
+      - guest
+    Guest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone:
+          type: string
+          description: E.164
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+        firstName:
+          anyOf:
+          - type: string
+          - type: 'null'
+        lastName:
+          anyOf:
+          - type: string
+          - type: 'null'
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+        allergies:
+          anyOf:
+          - type: string
+          - type: 'null'
+        allergens:
+          type: array
+          items:
+            type: string
+            enum:
+            - gluten
+            - crustaceans
+            - eggs
+            - fish
+            - peanuts
+            - soybeans
+            - milk
+            - nuts
+            - celery
+            - mustard
+            - sesame
+            - sulphites
+            - lupin
+            - molluscs
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+        visitCount:
+          type: integer
+        noShowCount:
+          type: integer
+        cancelledCount:
+          type: integer
+        lastVisitAt:
+          anyOf:
+          - type: string
+            description: Istante ISO 8601 con fuso
+            format: date-time
+          - type: 'null'
+        consents:
+          type: object
+        campaignTags:
+          type: array
+          items:
+            type: string
+        serviceTags:
+          type: array
+          items:
+            type: string
+        externalRef:
+          anyOf:
+          - type: string
+          - type: 'null'
+        createdAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        updatedAt:
+          type: string
+          description: Anche la versione, per If-Match
+          format: date-time
+      required:
+      - id
+      - phone
+      - name
+      - firstName
+      - lastName
+      - email
+      - allergies
+      - allergens
+      - notes
+      - visitCount
+      - noShowCount
+      - cancelledCount
+      - lastVisitAt
+      - consents
+      - campaignTags
+      - serviceTags
+      - externalRef
+      - createdAt
+      - updatedAt
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          description: 'L''evento: coincide con eventId'
+          format: uuid
+        eventId:
+          type: string
+          description: Lo stesso eventId del webhook
+          format: uuid
+        type:
+          type: string
+          enum:
+          - reservation_created
+          - reservation_confirmed
+          - reservation_modified
+          - reservation_cancelled
+          - guest_arrived
+          - guest_seated
+          - table_released
+          - reservation_late
+          - reservation_no_show
+          - meal_completed
+          - waitlist_entry_created
+          - compatible_table_freed
+          - guest_profile_changed
+          - waitlist_entry_cancelled
+          - reservation_needs_attention
+        createdAt:
+          type: string
+          description: Quando è accaduto il fatto
+          format: date-time
+        venueId:
+          type: string
+          format: uuid
+        apiVersion:
+          type: string
+          const: v1
+        data:
+          description: 'In /events la fotografia del fatto, com''era quando è accaduto (guest della prenotazione
+            nullo); nel webhook la prenotazione di quando parte, e updatedAt dice quale è più nuova. guest_profile_changed:
+            in /events solo l''id dell''ospite, nel webhook la scheda intera.'
+          anyOf:
+          - type: object
+            properties:
+              reservation:
+                anyOf:
+                - $ref: '#/components/schemas/Reservation'
+                - type: 'null'
+            required:
+            - reservation
+          - type: object
+            properties:
+              waitlistEntry:
+                anyOf:
+                - $ref: '#/components/schemas/WaitlistEntry'
+                - type: 'null'
+            required:
+            - waitlistEntry
+          - type: object
+            properties:
+              guest:
+                anyOf:
+                - anyOf:
+                  - $ref: '#/components/schemas/Guest'
+                  - type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                    required:
+                    - id
+                - type: 'null'
+              reason:
+                anyOf:
+                - type: string
+                  description: guest_created, profile_changed, service_tags_changed
+                - type: 'null'
+            required:
+            - guest
+            - reason
+      required:
+      - id
+      - eventId
+      - type
+      - createdAt
+      - venueId
+      - apiVersion
+      - data
+    DaySummary:
+      type: object
+      properties:
+        serviceDate:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        covers:
+          type: integer
+        tablesTurned:
+          type: integer
+        noShows:
+          type: integer
+        waitlistRecovered:
+          type: integer
+      required:
+      - serviceDate
+      - covers
+      - tablesTurned
+      - noShows
+      - waitlistRecovered
+    PeriodReport:
+      type: object
+      properties:
+        venueId:
+          type: string
+          format: uuid
+        from:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        to:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/DaySummary'
+        totals:
+          type: object
+          properties:
+            covers:
+              type: integer
+            tablesTurned:
+              type: integer
+            noShows:
+              type: integer
+            waitlistRecovered:
+              type: integer
+          required:
+          - covers
+          - tablesTurned
+          - noShows
+          - waitlistRecovered
+      required:
+      - venueId
+      - from
+      - to
+      - days
+      - totals
+    EndOfDayReport:
+      type: object
+      properties:
+        venueId:
+          type: string
+          format: uuid
+        serviceDate:
+          type: string
+          description: Giorno di servizio, YYYY-MM-DD
+          format: date
+        current:
+          $ref: '#/components/schemas/DaySummary'
+        previousWeek:
+          $ref: '#/components/schemas/DaySummary'
+      required:
+      - venueId
+      - serviceDate
+      - current
+      - previousWeek
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        venueId:
+          type: string
+          format: uuid
+        endpointId:
+          anyOf:
+          - type: string
+            description: Nullo sulle consegne precedenti alle destinazioni multiple
+            format: uuid
+          - type: 'null'
+        idempotencyKey:
+          type: string
+          description: La stessa X-Gestionesala-Idempotency-Key di ogni tentativo
+        url:
+          type: string
+          description: L'indirizzo com'era al tentativo
+        status:
+          type: string
+          enum:
+          - pending
+          - delivered
+          - discarded
+        attemptCount:
+          type: integer
+        nextAttemptAt:
+          anyOf:
+          - type: string
+            description: Istante ISO 8601 con fuso
+            format: date-time
+          - type: 'null'
+        lastError:
+          anyOf:
+          - type: string
+          - type: 'null'
+        lastStatusCode:
+          anyOf:
+          - type: integer
+          - type: 'null'
+        deliveredAt:
+          anyOf:
+          - type: string
+            description: Istante ISO 8601 con fuso
+            format: date-time
+          - type: 'null'
+        createdAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        body:
+          type: object
+          description: 'Il corpo spedito: la busta del webhook, ridotta agli scope di chi legge. Senza
+            guests:read dell''ospite resta l''id; reservation e waitlistEntry chiedono il loro scope di
+            lettura o events:read.'
+      required:
+      - id
+      - venueId
+      - endpointId
+      - idempotencyKey
+      - url
+      - status
+      - attemptCount
+      - nextAttemptAt
+      - lastError
+      - lastStatusCode
+      - deliveredAt
+      - createdAt
+      - updatedAt
+      - body
+    WebhookEndpoint:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        venueId:
+          type: string
+          format: uuid
+        url:
+          type: string
+        isActive:
+          type: boolean
+        secretVersion:
+          type: integer
+        previousSecretExpiresAt:
+          anyOf:
+          - type: string
+            description: Istante ISO 8601 con fuso
+            format: date-time
+          - type: 'null'
+        createdAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        updatedAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+      required:
+      - id
+      - venueId
+      - url
+      - isActive
+      - secretVersion
+      - previousSecretExpiresAt
+      - createdAt
+      - updatedAt
+    Import:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+          - guests
+          - reservations
+        status:
+          type: string
+          enum:
+          - processing
+          - completed
+          - failed
+          description: 'failed: un guasto a metà, le righe già entrate restano'
+        totalRows:
+          type: integer
+        createdRows:
+          type: integer
+        updatedRows:
+          type: integer
+        rejectedRows:
+          type: integer
+        rejections:
+          type: array
+          items:
+            type: object
+            properties:
+              row:
+                type: integer
+                description: Posizione nell'elenco mandato, da zero
+              code:
+                type: string
+                description: 'Codice d''errore v1: invalid_request, conflict, no_availability, not_found,
+                  forbidden'
+              message:
+                type: string
+              fields:
+                type: array
+                items:
+                  type: string
+            required:
+            - row
+            - code
+            - message
+            - fields
+        createdAt:
+          type: string
+          description: Istante ISO 8601 con fuso
+          format: date-time
+        completedAt:
+          anyOf:
+          - type: string
+            description: Istante ISO 8601 con fuso
+            format: date-time
+          - type: 'null'
+      required:
+      - id
+      - kind
+      - status
+      - totalRows
+      - createdRows
+      - updatedRows
+      - rejectedRows
+      - rejections
+      - createdAt
+      - completedAt
+  securitySchemes:
+    apiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: gsk_... | gsk_test_... | gspk_...

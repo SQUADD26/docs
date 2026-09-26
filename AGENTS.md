@@ -1,33 +1,30 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
+# Istruzioni per chi scrive in questo repo
 
-# Documentation project instructions
+Sito documentazione di **Gestione Sala** (docs.gestionesala.com), costruito con Mintlify. App: https://app.gestionesala.com. Codice dell'app: repo `gestionesala-ai`.
 
-## About this project
+## Struttura
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
-- Pages are MDX files with YAML frontmatter
-- Configuration lives in `docs.json`
-- Use the Mintlify MCP server, `https://mcp.mintlify.com`, to edit content and settings via MCP
-- Use the Mintlify docs MCP server, `https://www.mintlify.com/docs/mcp`, to query information about using Mintlify via MCP
+- `docs.json`: configurazione e navigazione (tab Guida, API, IA e agenti).
+- `index.mdx`, `guida/`: guida all'app per chi la usa.
+- `api/`: pagine scritte a mano sull'API (introduzione, autenticazione, errori, idempotenza, limiti di richiesta). `api/riferimento-completo.mdx` è generata da `scripts/riferimento.py`: non modificarla a mano.
+- `openapi.yaml`: specifica OpenAPI 3.1 dell'API pubblica v1. Genera le pagine per endpoint (gruppi per risorsa nella tab API). E' la fonte di verita': le pagine in `api/` non devono contraddirla.
+- `ia/`: come dare le docs a un'IA o a un agente.
 
-## Terminology
+## Regole
 
-{/* Add product-specific terms and preferred usage */}
-{/* Example: Use "workspace" not "project", "member" not "user" */}
+- Tutto in italiano, con accenti veri (è, più, già). Registro tecnico come Stripe o Anthropic: frasi dichiarative, un fatto per frase, nomi di campo esatti in `code`. Vietati metafore, domande retoriche, toni da chat, "semplicemente", "facile".
+- Summary di un endpoint: imperativo + risorsa ("Crea una prenotazione"). Descrizione: cosa fa, precondizioni, effetti collaterali, cosa restituisce.
+- I casi limite si descrivono come comportamento: "Se non c'è disponibilità, la risposta è `200` con `available: false`".
+- Documenta solo cio' che esiste nell'app (ramo `dev` di `gestionesala-ai`). Niente funzioni inventate o future spacciate per reali.
+- Usa i termini del glossario (`guida/glossario.mdx`, che viene da `CONTEXT.md` dell'app). A schermo il CRM si chiama **SQUADD**, mai GHL.
+- Nomi dei pulsanti in grassetto, come compaiono nell'app: **Crea una chiave**.
+- Codice, percorsi, header e campi in `code`.
 
-## Style preferences
+## Prima di committare
 
-{/* Add any project-specific style rules below */}
-
-- Use active voice and second person ("you")
-- Keep sentences concise — one idea per sentence
-- Use sentence case for headings
-- Bold for UI elements: Click **Settings**
-- Code formatting for file names, commands, paths, and code references
-
-## Content boundaries
-
-{/* Define what should and shouldn't be documented */}
-{/* Example: Don't document internal admin features */}
+```bash
+python3 scripts/riferimento.py
+mint validate
+mint broken-links
+mint openapi-check openapi.yaml
+```

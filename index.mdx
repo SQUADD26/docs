@@ -1,20 +1,50 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "Introduzione"
+description: "Cos'è Gestione Sala, a chi serve e dove trovare le cose in questa documentazione."
+icon: "house"
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+Gestione Sala è l'app per gestire la sala di un ristorante o di un pub: prenotazioni, tavoli, ospiti, coda clienti e automazioni. Si usa dal browser su [app.gestionesala.com](https://app.gestionesala.com), da computer, tablet o telefono.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+## A chi serve
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+- **Titolare e manager**: impostano locali, sale, turni e permessi; leggono il consuntivo di serata.
+- **Maitre**: prende le prenotazioni, assegna i tavoli, gestisce arrivi, ritardi e coda clienti.
+- **Cameriere**: vede la sala, segna chi arriva, fa sedere, libera i tavoli.
+- **Chi integra un sistema esterno** (ad esempio un agente vocale al telefono): usa l'[API v1](/api/introduzione).
+
+Ogni persona vede solo ciò che il suo ruolo le permette. I ruoli pronti sono quattro: titolare, manager, maitre, cameriere. Se non bastano se ne costruisce uno su misura.
+
+## Come è organizzata l'app
+
+| Sezione | Dove | A cosa serve |
+| --- | --- | --- |
+| [Home](/guida/home) | barra laterale | Le prenotazioni del giorno e la chat con l'Assistente IA |
+| [Sala](/guida/sala) | barra laterale | La pianta dal vivo: arrivi, tavoli, spostamenti |
+| [Automazioni](/guida/automazioni) | barra laterale | Cosa succede da solo quando accade un fatto in sala |
+| [Contatti](/guida/contatti) | barra laterale | La rubrica degli ospiti |
+| [Impostazioni](/guida/impostazioni) | barra laterale | Utenti, locali, orari, collegamenti, registro, cestino |
+| [Prenotazioni](/guida/prenotazioni) | da link | Le prenotazioni del giorno, da prendere, spostare, chiudere |
+| [Coda clienti](/guida/coda-clienti) | da link | Chi aspetta di essere richiamato |
+| [Consuntivo di serata](/guida/consuntivo) | da link | I numeri del servizio |
+
+## Da dove partire
+
+<CardGroup cols={2}>
+  <Card title="Primi passi" icon="play" href="/guida/primi-passi">
+    Configurazione del locale, invito dello staff, primo servizio.
+  </Card>
+  <Card title="Glossario" icon="book" href="/guida/glossario">
+    Definizioni dei termini usati nell'app.
+  </Card>
+  <Card title="API" icon="code" href="/api/introduzione">
+    Disponibilità, ospiti, prenotazioni, coda clienti.
+  </Card>
+  <Card title="IA e agenti" icon="robot" href="/ia/panoramica">
+    llms-full.txt, pagine Markdown, server MCP, specifica OpenAPI.
+  </Card>
+</CardGroup>
+
+## Non ancora nell'app
+
+Le **comande** (presa ordini, menu, reparti, portate, asporto, conto al banco) sono in progettazione. Oggi non esistono nell'app.

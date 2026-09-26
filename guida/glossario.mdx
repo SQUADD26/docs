@@ -1,0 +1,99 @@
+---
+title: "Glossario"
+description: "Termini di Gestione Sala e relativo significato."
+icon: "book"
+---
+
+## Struttura
+
+**Organizzazione**: l'azienda cliente. Possiede uno o più locali e i loro contatti. Nessun dato attraversa il confine di un'organizzazione.
+
+**Locale**: il singolo esercizio, un ristorante o un pub. Ha sale, turni e regole proprie. Due locali della stessa organizzazione condividono i contatti, non le sale.
+
+**Sala**: una parte del locale con identità propria (sala grande, dehors, bancone, privee). Contiene tavoli.
+
+**Pianta**: la disposizione dei tavoli in una sala. Un locale può averne più d'una (estiva, invernale), una sola attiva per volta.
+
+**Tavolo**: posto fisico con nome, forma, posizione e capienza **minima e massima**. La minima evita di dare un tavolo da 8 a due persone.
+
+**Tavoli unibili**: tavoli che, accostati, servono un gruppo più grande. Un tavolo occupato rende inutilizzabile ogni unione di cui fa parte.
+
+**Tavolo bloccato**: esiste sulla pianta ma non si assegna (fuori uso, riservato, in riparazione).
+
+## Tempo
+
+**Turno**: fascia di servizio con orario di apertura e di ultimo ingresso (pranzo, cena).
+
+**Giorno di servizio**: il giorno a cui appartiene un turno. Un turno iniziato alle 22:00 e finito all'01:30 appartiene al giorno in cui è iniziato.
+
+**Durata**: quanto si stima che un tavolo resti occupato. Dipende dal turno e dai coperti; vince la regola più specifica.
+
+**Tempo di pulizia**: intervallo minimo tra due prenotazioni sullo stesso tavolo.
+
+**Cadenza**: tetto di coperti o prenotazioni che possono entrare nella stessa fascia oraria, per non saturare la cucina. Spenta finché il locale non la accende.
+
+**Sforamento**: prenotazione la cui durata invade il turno successivo. L'app la segnala, non la vieta.
+
+## Prenotazione
+
+**Prenotazione**: l'impegno a ospitare un certo numero di persone a un certo orario. È valida anche senza tavolo assegnato.
+
+**Coperti**: numero di persone della prenotazione.
+
+**Da sistemare**: prenotazione rimasta senza tavolo valido dopo una modifica di orario, coperti o pianta. Serve una decisione umana.
+
+**Senza prenotazione** (walk-in): ospite arrivato senza aver prenotato.
+
+**Coda clienti**: ospite che non ha trovato posto e ha accettato di essere richiamato. Quando si libera un posto adatto viene contattato il primo idoneo.
+
+**Tolleranza**: ritardo oltre il quale una prenotazione diventa mancata presentazione.
+
+**Mancata presentazione** (no-show): l'ospite non si è presentato entro la tolleranza. Il tavolo si libera e il fatto resta sulla scheda dell'ospite.
+
+## Ospite
+
+**Ospite**: la persona che siede al tavolo: nome, contatti, allergie, note, tag, storico visite, mancate presentazioni.
+
+**Allergia**: uno dei 14 allergeni di legge, mai testo libero. Distinta dalla **preferenza**, che è un gusto.
+
+**Tag di servizio**: etichetta operativa (VIP, abituale, allergico) che cambia come si accoglie l'ospite.
+
+**Scheda di servizio**: nome e allergie. È ciò che vede chi può servire ma non leggere la scheda completa.
+
+## Accesso
+
+**Ruolo**: insieme di permessi con un nome. Pronti: titolare, manager, maitre, cameriere. Oppure su misura.
+
+**Permesso**: il diritto di fare una cosa precisa. Si assegna per locale.
+
+**Ultimo titolare**: un'organizzazione ha sempre almeno un titolare; l'ultimo non si può togliere.
+
+**Invito**: link via email per entrare la prima volta, senza password. Vale una volta e scade.
+
+**Registro** (Log dati): la storia di cosa è cambiato: chi, cosa, quando, valore prima e dopo. Ciò che fa l'Assistente IA compare distinto: "Assistente IA, per conto di Mario".
+
+## Assistente IA
+
+**Assistente IA**: assistente integrato nell'app, a voce o per iscritto. Esegue solo le operazioni consentite al ruolo dell'utente.
+
+**Piano**: la richiesta tradotta in passi, mostrata prima di farla. Parte solo con **Applica**; ha il suo **Annulla**.
+
+## Cestino
+
+**Cestino**: dove finisce ciò che si cancella. Per 30 giorni si ripristina, poi viene eliminato definitivamente.
+
+## Automazioni
+
+**Evento**: un fatto accaduto in sala (prenotazione creata, ospite arrivato, tavolo liberato...).
+
+**Automazione**: flusso che parte da un evento e, attraverso attese e condizioni, arriva a una o più azioni.
+
+**Azione**: cosa succede alla fine: avvisare SQUADD, scrivere sulla scheda ospite, cambiare stato alla prenotazione, agire sulla sala.
+
+**Avviso di sala**: il messaggio lasciato da "Avvisa il maitre". Resta in Sala e in Home finché qualcuno lo segna come letto.
+
+## Sistemi esterni
+
+**SQUADD**: il CRM collegato: contatti di marketing, consensi, conversazioni, campagne, invio dei messaggi.
+
+**Agente vocale**: l'assistente che risponde al telefono del locale e prenota tramite l'[API](/api/introduzione).

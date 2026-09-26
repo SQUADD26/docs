@@ -1,0 +1,87 @@
+---
+title: "Documentazione per LLM e agenti"
+sidebarTitle: "Panoramica"
+description: "URL da fornire a un LLM per leggere tutta la documentazione in una richiesta, indice llms.txt, pagine Markdown, specifica OpenAPI e server MCP."
+icon: "robot"
+---
+
+## Documentazione completa in un file
+
+Per dare a un LLM tutta la documentazione in una sola richiesta, usa:
+
+```text
+https://docs.gestionesala.com/llms-full.txt
+```
+
+Il file contiene, in Markdown, il testo integrale di ogni pagina pubblicata: guida all'app, pagine introduttive dell'API (autenticazione, errori, idempotenza, limiti di richiesta), pagine IA e agenti e il [riferimento completo dell'API](/api/riferimento-completo), con tutti gli endpoint, i parametri, i campi del body, le risposte, i codici di errore e gli esempi JSON. Ogni pagina è preceduta da titolo e URL sorgente. Il file viene rigenerato a ogni pubblicazione.
+
+```bash
+curl -s https://docs.gestionesala.com/llms-full.txt -o gestionesala-docs.md
+```
+
+## Formati disponibili
+
+| Risorsa | URL | Contenuto |
+| --- | --- | --- |
+| Documentazione completa | [`/llms-full.txt`](https://docs.gestionesala.com/llms-full.txt) | Testo integrale di tutte le pagine, riferimento API incluso |
+| Indice | [`/llms.txt`](https://docs.gestionesala.com/llms.txt) | Elenco delle pagine con titolo, descrizione e link alla versione Markdown |
+| Pagina singola | URL della pagina + `.md`, es. [`/api/errori.md`](https://docs.gestionesala.com/api/errori.md) | Una pagina in Markdown |
+| Specifica OpenAPI 3.1 | [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml) | Definizione formale di endpoint, parametri, schemi e risposte |
+| Server MCP | `https://docs.gestionesala.com/mcp` | Ricerca e lettura delle pagine da parte di un client MCP |
+
+Una pagina in Markdown si ottiene anche con l'header `Accept: text/markdown`:
+
+```bash
+curl -sL -H "Accept: text/markdown" https://docs.gestionesala.com/api/errori
+```
+
+## Menu della pagina
+
+Il menu in cima a ogni pagina offre:
+
+| Voce | Azione |
+| --- | --- |
+| **Copia pagina** | Copia la pagina in Markdown |
+| **Visualizza come Markdown** | Apre la versione Markdown |
+| **Apri in ChatGPT**, **Apri in Claude**, **Apri in Perplexity** | Apre una conversazione con la pagina come contesto |
+| **Copia server MCP**, **Copia comando MCP** | Copia l'URL o il comando di installazione del server MCP |
+| **Collega a Cursor**, **Collega a VS Code** | Installa il server MCP nell'editor |
+| **Scarica specifica** | Scarica `openapi.yaml` (solo pagine del riferimento API) |
+
+## Server MCP
+
+Il server MCP espone ricerca e lettura della documentazione a Claude, Cursor, VS Code, ChatGPT e agli altri client MCP.
+
+```text
+https://docs.gestionesala.com/mcp
+```
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http gestionesala-docs https://docs.gestionesala.com/mcp
+    ```
+  </Tab>
+  <Tab title="Cursor / VS Code">
+    Usa **Collega a Cursor** o **Collega a VS Code** dal menu della pagina.
+  </Tab>
+  <Tab title="Altri client">
+    ```bash
+    npx add-mcp https://docs.gestionesala.com/mcp
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Il server MCP legge solo la documentazione. Non accede ai dati dei locali e non esegue operazioni. Per leggere e modificare dati serve l'[API](/api/introduzione) con una chiave.
+</Note>
+
+## Specifica OpenAPI
+
+[`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml) (OpenAPI 3.1) è la fonte di verità per endpoint, campi e codici di errore. Usi tipici:
+
+- generazione di un client tipizzato (`openapi-generator`, `openapi-typescript`);
+- import in Postman, Insomnia o Bruno;
+- definizione dei tool di un agente.
+
+Prompt pronto per l'integrazione: [Prompt per agenti](/ia/prompt-agenti).

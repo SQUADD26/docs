@@ -1,0 +1,129 @@
+---
+title: "Autenticazione"
+description: "Header di autenticazione, tipi di chiave, scope, chiave pubblica del widget, chiavi di prova, creazione e revoca."
+icon: "key"
+---
+
+Ogni richiesta include una chiave API nell'header `Authorization` con schema `Bearer`. Una richiesta senza chiave valida riceve `401`. Fanno eccezione `GET /health` e `GET /openapi.json`, che non richiedono chiave.
+
+```bash
+curl "https://app.gestionesala.com/api/v1/me" \
+  -H "Authorization: Bearer $GS_KEY"
+```
+
+`GET /me` restituisce l'organizzazione, gli scope e i locali della chiave che chiama.
+
+## Header
+
+| Header | Valore | Obbligatorio |
+| --- | --- | --- |
+| `Authorization` | `Bearer <chiave>` | Sì, tranne `GET /health` e `GET /openapi.json` |
+| `Content-Type` | `application/json` | Sì, sulle richieste con body |
+| `Idempotency-Key` | Stringa scelta dal client | No. Su tutti i `POST` che creano una risorsa. Vedi [Idempotenza](/api/idempotenza) |
+| `If-Match` | `updatedAt` letto in precedenza | No. Sui `PATCH`: la modifica passa solo se la risorsa non è cambiata |
+| `X-Request-Id` | Identificativo della richiesta | No. Se valido, la risposta lo restituisce; altrimenti il server ne genera uno |
+
+## Tipi di chiave
+
+Il prefisso identifica il tipo di chiave e l'organizzazione a cui appartiene.
+
+| Prefisso | Tipo | Dove si usa |
+| --- | --- | --- |
+| `gsk_` | Chiave segreta | Server, agente vocale, integrazioni. Mai nel browser |
+| `gsk_test_` | Chiave segreta di prova | Organizzazione di prova. Vedi [Chiavi di prova](#chiavi-di-prova) |
+| `gspk_` | Chiave pubblica del widget | Pagina web del locale. Vedi [Chiave pubblica del widget](#chiave-pubblica-del-widget) |
+| `gspk_test_` | Chiave pubblica di prova | Widget collegato all'organizzazione di prova |
+
+Una chiave identifica un'organizzazione e un principale con un ruolo proprio. Ogni richiesta vede solo i dati dell'organizzazione della chiave e dei locali assegnati alla chiave: una risorsa fuori da questo perimetro restituisce `404 not_found`, non `403`.
+
+## Scope
+
+Ogni endpoint richiede uno scope, indicato nella sua pagina come `Scope: <nome>`. Una chiave senza lo scope richiesto riceve `403 insufficient_scope` prima che la richiesta legga dati; lo scope mancante è in `details.requiredScope`.
+
+| Scope | Apre |
+| --- | --- |
+| `reservations:read` | Lettura delle prenotazioni, disponibilità |
+| `reservations:write` | Creazione, modifica e annullamento delle prenotazioni |
+| `waitlist:read` | Lettura della lista d'attesa |
+| `waitlist:write` | Inserimento, modifica, rimozione e conversione delle voci in lista d'attesa |
+| `guests:read` | Rubrica, ricerca per telefono, scheda di servizio, catalogo dei tag di servizio, dati dell'ospite nelle espansioni e nei webhook |
+| `guests:write` | Creazione e modifica degli ospiti, consensi, tag, Cestino |
+| `venues:read` | Locali, turni, chiusure, regole di permanenza e di ritmo degli arrivi |
+| `floor:read` | Sale, tavoli, piante, stato della sala in tempo reale |
+| `floor:write` | Nessun endpoint della v1 lo richiede |
+| `reports:read` | Consuntivi di periodo, chiusura di fine serata, export delle prenotazioni |
+| `events:read` | Storico degli eventi (`GET /events`) |
+| `imports:write` | Import di ospiti e prenotazioni e relativo resoconto |
+| `webhooks:read` | Destinazioni e consegne dei webhook |
+| `webhooks:write` | Rispedizione delle consegne, evento di prova, rotazione del segreto |
+
+La chiave dell'agente vocale creata da **Impostazioni → Collegamenti** ha gli scope `reservations:read`, `reservations:write`, `waitlist:read`, `waitlist:write`, `guests:read`, `guests:write`, `venues:read`, `floor:read`.
+
+Una chiave può essere limitata a un sottoinsieme dei locali dell'organizzazione. I locali esclusi non compaiono negli elenchi e restituiscono `404`.
+
+## Chiave pubblica del widget
+
+La chiave `gspk_` è pensata per il codice di una pagina web, quindi è leggibile da chiunque. Per questo il suo perimetro è fisso:
+
+- **Endpoint**: solo `GET /availability`, `GET /availability/slots`, `GET /availability/days` e `POST /reservations`. Ogni altro endpoint risponde `403 forbidden` con `details.reason: "publishable_key"`.
+- **Origine**: l'header `Origin` deve corrispondere a uno dei siti registrati sulla chiave (da 1 a 20, nella forma `https://dominio`). Un'origine diversa riceve `403 forbidden` con `details.reason: "origin_not_allowed"`. Le risposte ammesse portano gli header CORS.
+- **Limite**: il limite di richieste vale per indirizzo IP del visitatore (per IPv6, per `/64`), predefinito 20 al minuto. Vedi [Limiti di richiesta](/api/limiti).
+- **Campi**: `POST /reservations` rifiuta `serviceTags` ed `externalRef` con `400 invalid_request`. La prenotazione restituita non contiene dati dell'ospite.
+
+Le chiavi segrete non ricevono mai gli header CORS.
+
+## Chiavi di prova
+
+Un'organizzazione di prova ha solo chiavi `gsk_test_` e `gspk_test_`. Le richieste funzionano come in produzione, con queste differenze:
+
+- ogni risposta JSON contiene `livemode: false`;
+- nessun webhook, messaggio o sincronizzazione verso SQUADD parte dall'organizzazione di prova.
+
+L'organizzazione di prova si crea come un'organizzazione normale, indicando che è di prova. Il tipo si decide alla creazione e non cambia.
+
+## Creare una chiave
+
+<Steps>
+  <Step title="Apri Collegamenti">
+    Nell'app apri **Impostazioni → Collegamenti**, sezione **Agente vocale**. Serve il permesso sui collegamenti in ogni locale della chiave.
+  </Step>
+  <Step title="Assegna un nome">
+    Inserisci un nome che identifichi il sistema che userà la chiave, ad esempio `Agente telefono sala`. Il nome compare in `sourceDetail` delle prenotazioni create dalla chiave, se la richiesta non indica un `channel`.
+  </Step>
+  <Step title="Crea la chiave">
+    Premi **Crea una chiave**. La chiave viene mostrata una sola volta.
+  </Step>
+</Steps>
+
+<Warning>
+  Il server conserva solo l'hash SHA-256 della chiave. Una chiave persa non è recuperabile: creane una nuova e revoca quella precedente.
+</Warning>
+
+## Revocare una chiave
+
+Nella stessa sezione, apri il menu della chiave e scegli **Revoca**. La revoca ha effetto immediato: le richieste successive con quella chiave ricevono `401 api_key_revoked`.
+
+## Errori di autenticazione e di permesso
+
+| Status | `code` | Causa |
+| --- | --- | --- |
+| `401` | `unauthenticated` | Header `Authorization` assente o senza schema `Bearer` |
+| `401` | `api_key_invalid` | Chiave sconosciuta o malformata |
+| `401` | `api_key_revoked` | Chiave revocata |
+| `403` | `insufficient_scope` | La chiave non ha lo scope dell'endpoint. `details.requiredScope` indica quale |
+| `403` | `forbidden` | Chiave pubblica fuori dal suo perimetro. `details.reason` è `publishable_key` o `origin_not_allowed` |
+
+```json
+{
+  "error": {
+    "code": "insufficient_scope",
+    "message": "questa chiave non ha lo scope reservations:write",
+    "details": { "requiredScope": "reservations:write" },
+    "requestId": "6f1c2a0e-4b8d-4c6e-9a51-2f3b7d8e9a10"
+  }
+}
+```
+
+## Conservazione della chiave
+
+Non inserire una chiave segreta nel codice sorgente, in un repository o in una pagina web. Passala al sistema chiamante tramite variabile d'ambiente, ad esempio `GESTIONESALA_API_KEY`.

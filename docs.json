@@ -2,52 +2,234 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Gestione Sala",
+  "description": "Documentazione di Gestione Sala: guida all'app per ristoranti e riferimento dell'API v1 (disponibilità, ospiti, prenotazioni, coda clienti).",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#C34517",
+    "light": "#FA6E1D",
+    "dark": "#C34517"
   },
-  "favicon": "/favicon.svg",
-  "navigation": {
-    "pages": [
-      {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
-        ]
-      }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+  "fonts": {
+    "family": "Geist"
   },
+  "favicon": "/favicon.png",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png",
+    "href": "https://gestionesala.com"
   },
   "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Accedi",
+      "href": "https://app.gestionesala.com"
+    }
+  },
+  "navigation": {
+    "languages": [
+      {
+        "language": "it",
+        "default": true,
+        "tabs": [
+          {
+            "tab": "Guida",
+            "icon": "book-open",
+            "groups": [
+              {
+                "group": "Per iniziare",
+                "pages": [
+                  "index",
+                  "guida/primi-passi",
+                  "guida/glossario"
+                ]
+              },
+              {
+                "group": "Sezioni dell'app",
+                "pages": [
+                  "guida/home",
+                  "guida/sala",
+                  "guida/prenotazioni",
+                  "guida/coda-clienti",
+                  "guida/contatti",
+                  "guida/automazioni",
+                  "guida/consuntivo",
+                  "guida/assistente-ia",
+                  "guida/impostazioni"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "API",
+            "icon": "code",
+            "openapi": "openapi.yaml",
+            "groups": [
+              {
+                "group": "Per iniziare",
+                "pages": [
+                  "api/introduzione",
+                  "api/autenticazione",
+                  "api/errori",
+                  "api/idempotenza",
+                  "api/paginazione",
+                  "api/limiti",
+                  "api/webhook"
+                ]
+              },
+              {
+                "group": "Meta",
+                "icon": "circle-info",
+                "expanded": true,
+                "pages": [
+                  "GET /me",
+                  "GET /health",
+                  "GET /openapi.json"
+                ]
+              },
+              {
+                "group": "Locali",
+                "icon": "store",
+                "expanded": true,
+                "pages": [
+                  "GET /venues"
+                ]
+              },
+              {
+                "group": "Configurazione del locale",
+                "icon": "sliders",
+                "expanded": true,
+                "pages": [
+                  "GET /venues/{id}",
+                  "GET /venues/{id}/shifts",
+                  "GET /venues/{id}/closures",
+                  "GET /venues/{id}/areas",
+                  "GET /venues/{id}/tables",
+                  "GET /venues/{id}/floor-plans",
+                  "GET /venues/{id}/floor-plans/{planId}",
+                  "GET /venues/{id}/floor",
+                  "GET /venues/{id}/turn-time-rules",
+                  "GET /venues/{id}/pacing-rules",
+                  "GET /service-tags"
+                ]
+              },
+              {
+                "group": "Disponibilità",
+                "icon": "calendar-check",
+                "expanded": true,
+                "pages": [
+                  "GET /availability",
+                  "GET /availability/slots",
+                  "GET /availability/days"
+                ]
+              },
+              {
+                "group": "Prenotazioni",
+                "icon": "calendar",
+                "expanded": true,
+                "pages": [
+                  "GET /reservations",
+                  "POST /reservations",
+                  "GET /reservations/{id}",
+                  "PATCH /reservations/{id}",
+                  "DELETE /reservations/{id}"
+                ]
+              },
+              {
+                "group": "Lista d'attesa",
+                "icon": "list-ol",
+                "expanded": true,
+                "pages": [
+                  "GET /waitlist",
+                  "POST /waitlist",
+                  "GET /waitlist/{id}",
+                  "PATCH /waitlist/{id}",
+                  "DELETE /waitlist/{id}",
+                  "POST /waitlist/{id}/convert"
+                ]
+              },
+              {
+                "group": "Ospiti",
+                "icon": "user",
+                "expanded": true,
+                "pages": [
+                  "GET /guests",
+                  "POST /guests",
+                  "GET /guests/lookup",
+                  "GET /guests/{id}",
+                  "PATCH /guests/{id}",
+                  "DELETE /guests/{id}",
+                  "PUT /guests/{id}/tags",
+                  "GET /guests/{id}/service-card"
+                ]
+              },
+              {
+                "group": "Eventi e report",
+                "icon": "chart-line",
+                "expanded": true,
+                "pages": [
+                  "GET /events",
+                  "GET /reports/period",
+                  "GET /reports/eod",
+                  "GET /exports/reservations"
+                ]
+              },
+              {
+                "group": "Webhook",
+                "icon": "webhook",
+                "expanded": true,
+                "pages": [
+                  "GET /webhook-deliveries",
+                  "POST /webhook-deliveries/{id}/redeliver",
+                  "GET /webhook-endpoints",
+                  "POST /webhook-endpoints/test",
+                  "POST /webhook-endpoints/{id}/rotate-secret"
+                ]
+              },
+              {
+                "group": "Import",
+                "icon": "file-import",
+                "expanded": true,
+                "pages": [
+                  "POST /imports/guests",
+                  "POST /imports/reservations",
+                  "GET /imports/{id}"
+                ]
+              },
+              {
+                "group": "Tutti gli endpoint",
+                "icon": "file-lines",
+                "pages": [
+                  "api/riferimento-completo"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "IA e agenti",
+            "icon": "robot",
+            "groups": [
+              {
+                "group": "IA e agenti",
+                "pages": [
+                  "ia/panoramica",
+                  "ia/prompt-agenti"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "api": {
+    "playground": {
+      "display": "interactive"
+    },
+    "examples": {
+      "languages": [
+        "curl",
+        "javascript",
+        "python"
+      ]
     }
   },
   "contextual": {
@@ -58,15 +240,21 @@
       "claude",
       "perplexity",
       "mcp",
+      "add-mcp",
       "cursor",
-      "vscode"
+      "vscode",
+      "download-spec"
     ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+  "seo": {
+    "metatags": {
+      "og:image": "/og-image.png"
     }
+  },
+  "search": {
+    "prompt": "Cerca nella documentazione"
+  },
+  "markdown": {
+    "instructions": "Documentazione di Gestione Sala. Il testo completo, incluso il riferimento API, è in https://docs.gestionesala.com/llms-full.txt. Per endpoint, campi e codici di errore la fonte di verità è openapi.yaml: non usare endpoint o campi non documentati."
   }
 }
