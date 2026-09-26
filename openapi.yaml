@@ -702,9 +702,12 @@ components:
     CreateConflict:
       description: >
         `no_availability`: nessuna disponibilità, con `details.reason` e
-        `details.alternatives`. `conflict`: conflitto con una modifica
-        concorrente. `idempotency_in_progress`: una richiesta con la stessa
-        `Idempotency-Key` è ancora in corso.
+        `details.alternatives`. Oltre ai valori di `reason` di
+        `GET /availability`, qui `reason` può valere anche `conflict` (il
+        tavolo è stato appena preso da un'altra richiesta) o `table_blocked`
+        (il tavolo è fuori uso). `conflict` come `error.code`: conflitto con
+        una modifica concorrente. `idempotency_in_progress`: una richiesta
+        con la stessa `Idempotency-Key` è ancora in corso.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -718,11 +721,11 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: { code: "idempotency_in_progress", message: "una richiesta con questa chiave e' ancora in corso: ritenta fra poco", details: {} } }
     Conflict:
-      description: "`conflict`: la prenotazione è stata modificata da un'altra richiesta o è in uso. Rileggere la prenotazione prima di ripetere la richiesta."
+      description: "`conflict`: scrittura concorrente sulla stessa prenotazione o sullo stesso tavolo (vincolo violato o deadlock risolto senza successo). Ripetere la richiesta."
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
-          example: { error: { code: "conflict", message: "qualcun altro ha appena cambiato questa prenotazione: guarda com'e' adesso e riprova", details: {} } }
+          example: { error: { code: "conflict", message: "la sala sta cambiando in questo momento: riprova", details: {} } }
     IdempotencyKeyReused:
       description: "`idempotency_key_reused`: la `Idempotency-Key` è già stata usata per un'altra operazione. `details.operation` indica quale."
       content:
