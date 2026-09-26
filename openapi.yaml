@@ -4092,7 +4092,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: idempotency_in_progress
+          description: conflict, idempotency_in_progress
           content:
             application/json:
               schema:
@@ -4181,7 +4181,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: idempotency_in_progress
+          description: conflict, idempotency_in_progress
           content:
             application/json:
               schema:

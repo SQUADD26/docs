@@ -122,7 +122,9 @@ Il segreto dell'organizzazione firma le consegne di ogni locale. Per generarlo s
 
 Durante una rotazione, per `overlapMinutes` minuti (da `0` a `10080`, predefinito `1440`, cioè un giorno), l'header contiene due firme separate da virgola: `v1=<nuova>,v1=<precedente>`. Una firma valida è sufficiente. Aggiorna il segreto nel destinatario entro la scadenza della versione precedente, indicata in `previousSecretExpiresAt`. Con `overlapMinutes: 0` la versione precedente smette di firmare subito. La rotazione da **Impostazioni → Collegamenti** usa sempre un giorno.
 
-Con la stessa `Idempotency-Key`, una seconda richiesta di rotazione restituisce il segreto già generato invece di generarne un altro.
+Una rotazione eseguita mentre la versione precedente è ancora valida mantiene quella versione come precedente e ne sposta la scadenza a `overlapMinutes` minuti da quel momento. La versione generata dalla rotazione intermedia non firma più.
+
+Con la stessa `Idempotency-Key`, una seconda richiesta di rotazione restituisce il segreto già generato invece di generarne un altro. Se nel frattempo il segreto è stato ruotato di nuovo, la risposta è `409 conflict` e non contiene alcun segreto.
 
 ### Verifica
 

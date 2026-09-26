@@ -2009,7 +2009,7 @@ Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta v
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
 | `403` | forbidden, insufficient_scope |
 | `404` | not_found |
-| `409` | idempotency_in_progress |
+| `409` | conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
 | `429` | rate_limited |
 
@@ -2048,7 +2048,7 @@ Scope: `webhooks:write`, con una chiave non limitata a certi locali. Genera un n
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
 | `403` | forbidden, insufficient_scope |
-| `409` | idempotency_in_progress |
+| `409` | conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
 | `429` | rate_limited |
 
