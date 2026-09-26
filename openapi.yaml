@@ -4092,7 +4092,96 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: idempotency_in_progress
+          description: conflict, idempotency_in_progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: idempotency_key_reused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: rate_limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /webhook-secret/rotate:
+    post:
+      tags:
+      - Webhook
+      summary: Ruota il segreto di firma dell'organizzazione
+      security:
+      - apiKey: []
+      x-required-scope: webhooks:write
+      description: 'Scope: `webhooks:write`, con una chiave non limitata a certi locali. Genera un nuovo
+        segreto per le consegne all''indirizzo scritto nell''azione; il precedente resta valido per `overlapMinutes`
+        minuti.'
+      operationId: rotateOrganizationWebhookSecret
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra
+        schema:
+          type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                overlapMinutes:
+                  type: integer
+                  minimum: 0
+                  maximum: 10080
+                  default: 1440
+              required: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  secretVersion:
+                    type: integer
+                  secret:
+                    type: string
+                    description: 'Il segreto nuovo: si vede solo qui'
+                  previousSecretExpiresAt:
+                    type: string
+                    description: Fino a quando firma anche il segreto di prima
+                    format: date-time
+                required:
+                - secretVersion
+                - secret
+                - previousSecretExpiresAt
+        '400':
+          description: invalid_request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: unauthenticated, api_key_invalid, api_key_revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: forbidden, insufficient_scope
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: conflict, idempotency_in_progress
           content:
             application/json:
               schema:

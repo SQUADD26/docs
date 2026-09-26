@@ -2009,7 +2009,7 @@ Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta v
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
 | `403` | forbidden, insufficient_scope |
 | `404` | not_found |
-| `409` | idempotency_in_progress |
+| `409` | conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
 | `429` | rate_limited |
 
@@ -2018,6 +2018,44 @@ Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta v
 | Campo | Tipo | Sempre presente | Descrizione |
 | --- | --- | --- | --- |
 | `endpointId` | string (uuid) | sì |  |
+| `secretVersion` | integer | sì |  |
+| `secret` | string | sì | Il segreto nuovo: si vede solo qui |
+| `previousSecretExpiresAt` | string (date-time) | sì | Fino a quando firma anche il segreto di prima |
+
+## Ruota il segreto di firma dell'organizzazione
+
+`POST /webhook-secret/rotate`
+
+Scope: `webhooks:write`, con una chiave non limitata a certi locali. Genera un nuovo segreto per le consegne all'indirizzo scritto nell'azione; il precedente resta valido per `overlapMinutes` minuti.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `Idempotency-Key` | header | string | no | La stessa chiave ripetuta ritrova la risorsa invece di crearne un'altra |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `overlapMinutes` | integer | no |  |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | OK |
+| `400` | invalid_request |
+| `401` | unauthenticated, api_key_invalid, api_key_revoked |
+| `403` | forbidden, insufficient_scope |
+| `409` | conflict, idempotency_in_progress |
+| `422` | idempotency_key_reused |
+| `429` | rate_limited |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
 | `secretVersion` | integer | sì |  |
 | `secret` | string | sì | Il segreto nuovo: si vede solo qui |
 | `previousSecretExpiresAt` | string (date-time) | sì | Fino a quando firma anche il segreto di prima |
