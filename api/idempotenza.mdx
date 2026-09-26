@@ -38,7 +38,7 @@ La chiave è legata alla chiave API, all'operazione e al corpo della richiesta. 
 
 ## Scelta della chiave
 
-Usa una chiave per ogni operazione logica di creazione, non per ogni tentativo. Per un agente vocale: ID della chiamata più l'azione, ad esempio `<id-chiamata>-prenota`. Ogni ripetizione della stessa creazione usa la stessa chiave; una seconda prenotazione nella stessa chiamata usa una chiave diversa.
+Usa una chiave per ogni operazione logica di creazione, non per ogni tentativo. Per un'integrazione telefonica: ID della chiamata più l'azione, ad esempio `<id-chiamata>-prenota`. Ogni ripetizione della stessa creazione usa la stessa chiave; una seconda prenotazione nella stessa chiamata usa una chiave diversa.
 
 ```bash
 curl -s -X POST "https://app.gestionesala.com/api/v1/waitlist" \

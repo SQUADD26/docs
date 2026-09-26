@@ -4672,14 +4672,10 @@ components:
                 - imports:write
                 - webhooks:read
                 - webhooks:write
-            voiceAgent:
-              type: boolean
-              description: La chiave dell'agente vocale
           required:
           - id
           - name
           - scopes
-          - voiceAgent
         rateLimit:
           type: object
           properties:

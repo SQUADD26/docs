@@ -29,7 +29,7 @@ Il prefisso identifica il tipo di chiave e l'organizzazione a cui appartiene.
 
 | Prefisso | Tipo | Dove si usa |
 | --- | --- | --- |
-| `gsk_` | Chiave segreta | Server, agente vocale, integrazioni. Mai nel browser |
+| `gsk_` | Chiave segreta | Server, integrazioni. Mai nel browser |
 | `gsk_test_` | Chiave segreta di prova | Organizzazione di prova. Vedi [Chiavi di prova](#chiavi-di-prova) |
 | `gspk_` | Chiave pubblica del widget | Pagina web del locale. Vedi [Chiave pubblica del widget](#chiave-pubblica-del-widget) |
 | `gspk_test_` | Chiave pubblica di prova | Widget collegato all'organizzazione di prova |
@@ -57,7 +57,7 @@ Ogni endpoint richiede uno scope, indicato nella sua pagina come `Scope: <nome>`
 | `webhooks:read` | Destinazioni e consegne dei webhook |
 | `webhooks:write` | Rispedizione delle consegne, evento di prova, rotazione del segreto |
 
-La chiave dell'agente vocale creata da **Impostazioni → Collegamenti** ha gli scope `reservations:read`, `reservations:write`, `waitlist:read`, `waitlist:write`, `guests:read`, `guests:write`, `venues:read`, `floor:read`.
+La chiave API di gestionesala creata da **Impostazioni → Collegamenti → Chiavi API** ha gli scope `reservations:read`, `reservations:write`, `waitlist:read`, `waitlist:write`, `guests:read`, `guests:write`, `venues:read`, `floor:read`.
 
 Una chiave può essere limitata a un sottoinsieme dei locali dell'organizzazione. I locali esclusi non compaiono negli elenchi e restituiscono `404`.
 
@@ -85,10 +85,10 @@ L'organizzazione di prova si crea come un'organizzazione normale, indicando che 
 
 <Steps>
   <Step title="Apri Collegamenti">
-    Nell'app apri **Impostazioni → Collegamenti**, sezione **Agente vocale**. Serve il permesso sui collegamenti in ogni locale della chiave.
+    Nell'app apri **Impostazioni → Collegamenti → Chiavi API**. Serve il permesso sui collegamenti in ogni locale della chiave.
   </Step>
   <Step title="Assegna un nome">
-    Inserisci un nome che identifichi il sistema che userà la chiave, ad esempio `Agente telefono sala`. Il nome compare in `sourceDetail` delle prenotazioni create dalla chiave, se la richiesta non indica un `channel`.
+    Alla creazione il nome è già riempito con tre parole casuali riconoscibili; puoi cambiarlo con uno che identifichi il sistema che userà la chiave, ad esempio `Sito prenotazioni`. Il nome compare in `sourceDetail` delle prenotazioni create dalla chiave, se la richiesta non indica un `channel`.
   </Step>
   <Step title="Crea la chiave">
     Premi **Crea una chiave**. La chiave viene mostrata una sola volta.
