@@ -1,57 +1,65 @@
 ---
 title: "Autenticazione"
-description: "Come si crea una chiave API nell'app, come si usa e come si revoca."
+description: "Header di autenticazione, formato della chiave API, permessi, creazione e revoca."
 icon: "key"
 ---
 
-Ogni richiesta porta una chiave API nell'header `Authorization`:
+Ogni richiesta deve includere una chiave API nell'header `Authorization` con schema `Bearer`. Le richieste senza chiave valida ricevono `401`.
 
-```http
-Authorization: Bearer gsk_0123456789abcdef...
+```bash
+curl "https://app.gestionesala.com/api/v1/guests/lookup?phone=3391112233" \
+  -H "Authorization: Bearer $GS_KEY"
 ```
 
-Le chiavi hanno la forma `gsk_` seguita da 64 caratteri esadecimali. Non esistono altri header di autenticazione.
+## Header
+
+| Header | Valore | Obbligatorio |
+| --- | --- | --- |
+| `Authorization` | `Bearer gsk_<64 caratteri esadecimali>` | Sì, su tutti gli endpoint |
+| `Content-Type` | `application/json` | Sì, sulle richieste con body |
+| `Idempotency-Key` | Stringa scelta dal client | No. Solo su `POST /reservations` e `POST /waitlist`. Vedi [Idempotenza](/api/idempotenza) |
+
+## Permessi
+
+Una chiave API identifica un'organizzazione e un membro di quell'organizzazione. Ogni richiesta ha gli stessi permessi e la stessa visibilità sui locali di quel membro nell'app.
+
+- Un locale non visibile al membro restituisce `404 not_found`.
+- Un'operazione non consentita al membro restituisce `403 forbidden`.
 
 ## Creare una chiave
 
 <Steps>
   <Step title="Apri Collegamenti">
-    Nell'app vai in **Impostazioni → Collegamenti**, sezione **Agente vocale**. Serve il permesso sui collegamenti.
+    Nell'app apri **Impostazioni → Collegamenti**, sezione **Agente vocale**. Serve il permesso sui collegamenti.
   </Step>
-  <Step title="Dai un nome alla chiave">
-    Un nome che dica chi la usa, ad esempio "Agente telefono sala".
+  <Step title="Assegna un nome">
+    Inserisci un nome che identifichi il sistema che userà la chiave, ad esempio `Agente telefono sala`.
   </Step>
-  <Step title="Premi Crea una chiave">
-    La chiave compare a schermo **una sola volta**. Copiala subito e conservala in un posto sicuro.
+  <Step title="Crea la chiave">
+    Premi **Crea una chiave**. La chiave viene mostrata una sola volta.
   </Step>
 </Steps>
 
 <Warning>
-  Il segreto non si puo' rivedere: nel database resta solo la sua impronta (SHA-256). Se lo perdi, crea una chiave nuova e revoca la vecchia.
+  Il server conserva solo l'hash SHA-256 della chiave. Una chiave persa non è recuperabile: creane una nuova e revoca quella precedente.
 </Warning>
-
-## Cosa puo' fare una chiave
-
-La chiave identifica **un'organizzazione e un membro vero** di quell'organizzazione. Ogni chiamata vede e modifica solo cio' che quel membro vedrebbe e modificherebbe nell'app: stessi permessi, stessi locali. Un locale fuori dalla sua portata risponde `404`.
 
 ## Revocare una chiave
 
-Dalla stessa pagina: menu azioni della chiave → **Revoca**. La revoca e' immediata: la chiamata successiva con quella chiave riceve `401 api_key_revoked`.
+Nella stessa sezione, apri il menu della chiave e scegli **Revoca**. La revoca ha effetto immediato: le richieste successive con quella chiave ricevono `401 api_key_revoked`.
 
 ## Errori di autenticazione
 
-| Status | `code` | Quando |
+| Status | `code` | Causa |
 | --- | --- | --- |
-| `401` | `unauthenticated` | Nessuna chiave nell'header |
+| `401` | `unauthenticated` | Header `Authorization` assente o senza schema `Bearer` |
 | `401` | `api_key_invalid` | Chiave sconosciuta o malformata |
 | `401` | `api_key_revoked` | Chiave revocata |
 
-```bash
-curl -i "https://app.gestionesala.com/api/v1/guests/lookup?phone=3391112233"
-# HTTP/1.1 401
-# {"error":{"code":"unauthenticated","message":"serve una chiave API","details":{}}}
+```json
+{ "error": { "code": "unauthenticated", "message": "serve una chiave API", "details": {} } }
 ```
 
-<Tip>
-  Non mettere la chiave nel codice o in un repository. Passala come variabile d'ambiente al sistema che chiama l'API.
-</Tip>
+## Conservazione della chiave
+
+Non inserire la chiave nel codice sorgente o in un repository. Passala al sistema chiamante tramite variabile d'ambiente, ad esempio `GESTIONESALA_API_KEY`.

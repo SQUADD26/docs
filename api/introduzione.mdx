@@ -1,16 +1,11 @@
 ---
 title: "Introduzione all'API"
 sidebarTitle: "Introduzione"
-description: "API REST v1 di Gestione Sala: disponibilita', ospiti, prenotazioni, coda clienti."
+description: "API REST v1 di Gestione Sala: base URL, formato di richieste e risposte, versioning, elenco degli endpoint."
 icon: "code"
 ---
 
-L'API pubblica v1 serve a un sistema esterno, tipicamente un **agente vocale** che risponde al telefono del locale, per:
-
-- chiedere se c'e' posto e ricevere le alternative piu' vicine;
-- riconoscere l'ospite dal numero di telefono;
-- creare, modificare e disdire prenotazioni;
-- mettere in coda clienti chi non trova posto.
+L'API v1 di Gestione Sala espone disponibilità, ricerca ospiti, prenotazioni e coda clienti a sistemi esterni, ad esempio un agente vocale che risponde al telefono del locale.
 
 ## Base URL
 
@@ -18,43 +13,60 @@ L'API pubblica v1 serve a un sistema esterno, tipicamente un **agente vocale** c
 https://app.gestionesala.com/api/v1
 ```
 
-Richieste e risposte sono JSON. Date in formato `YYYY-MM-DD`, orari in `HH:MM` (ora locale del locale), istanti in ISO 8601 UTC (`startsAt`, `endsAt`).
+Tutte le richieste usano HTTPS.
+
+## Formato
+
+| Elemento | Formato |
+| --- | --- |
+| Body di richiesta e risposta | JSON, `Content-Type: application/json` |
+| Date (`serviceDate`) | `YYYY-MM-DD` |
+| Orari (`time`, `earliestTime`, `latestTime`) | `HH:MM`, nel fuso orario del locale |
+| Istanti (`startsAt`, `endsAt`) | ISO 8601 in UTC |
+| Numeri di telefono in input | Qualsiasi formato; il server li normalizza in E.164 |
+| Numeri di telefono in output | E.164, ad esempio `+393391112233` |
+| ID | UUID |
+
+## Versioning
+
+La versione è parte del percorso: `/api/v1`. Non esiste un header di versione.
 
 ## Endpoint
 
-| Metodo | Percorso | A cosa serve |
-| --- | --- | --- |
-| `GET` | `/availability` | C'e' posto a quell'ora per quei coperti? |
-| `GET` | `/guests/lookup` | Chi e' l'ospite con questo numero? |
-| `POST` | `/reservations` | Crea una prenotazione |
-| `PATCH` | `/reservations/{id}` | Cambia data, orario, coperti o note |
-| `DELETE` | `/reservations/{id}` | Disdice una prenotazione |
-| `POST` | `/waitlist` | Mette un ospite in coda clienti |
+| Risorsa | Metodo | Percorso | Operazione |
+| --- | --- | --- | --- |
+| Disponibilità | `GET` | [`/availability`](/api/disponibilita/verifica) | Verifica la disponibilità per data, ora e coperti |
+| Ospiti | `GET` | [`/guests/lookup`](/api/ospiti/cerca) | Cerca un ospite per numero di telefono |
+| Prenotazioni | `POST` | [`/reservations`](/api/prenotazioni/crea) | Crea una prenotazione |
+| Prenotazioni | `PATCH` | [`/reservations/{id}`](/api/prenotazioni/aggiorna) | Aggiorna data, orario, coperti o note |
+| Prenotazioni | `DELETE` | [`/reservations/{id}`](/api/prenotazioni/annulla) | Annulla una prenotazione |
+| Coda clienti | `POST` | [`/waitlist`](/api/coda-clienti/aggiungi) | Aggiunge un ospite alla coda clienti |
 
-Il dettaglio di ogni endpoint, con playground, e' nel gruppo **Riferimento** qui a lato. La specifica completa e' scaricabile: [openapi.yaml](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml).
+Ogni endpoint ha una pagina con parametri, risposte e playground nella barra laterale. Il [riferimento completo](/api/riferimento-completo) riporta tutti gli endpoint in una sola pagina. La specifica OpenAPI 3.1 è in [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml).
 
-## Come ragiona l'API
+## Comportamento generale
 
-- **Ogni chiamata parla come un membro vero dell'organizzazione.** La chiave API identifica un'organizzazione e una persona; da quel momento valgono gli stessi permessi dell'app. Niente scorciatoie sui dati.
-- **"No" non e' un errore.** Se non c'e' posto, `/availability` risponde `200` con `available: false`, il motivo e le alternative. Se il numero non e' in rubrica, `/guests/lookup` risponde `200` con `found: false`.
-- **Il tavolo lo decide la sala.** L'API non sceglie ne' rivela il tavolo: dice solo se e' assegnato (`tableAssigned`). Se dopo una modifica nessun tavolo regge, la prenotazione resta valida con `needsAttention: true`.
-- **Disdire non cancella.** `DELETE` porta la prenotazione in stato `cancelled`; la riga resta.
+- **Permessi.** La chiave API identifica un'organizzazione e un membro di quell'organizzazione. Ogni richiesta ha gli stessi permessi e la stessa visibilità sui locali di quel membro nell'app. Vedi [Autenticazione](/api/autenticazione).
+- **Esiti negativi con `200`.** `GET /availability` senza disponibilità risponde `200` con `available: false`, `reason` e `alternatives`. `GET /guests/lookup` senza corrispondenza risponde `200` con `found: false`.
+- **Tavolo non esposto.** L'API non accetta e non restituisce il tavolo. `tableAssigned` indica se un tavolo è assegnato. Se una modifica lascia la prenotazione senza tavolo compatibile, la prenotazione resta valida con `needsAttention: true`.
+- **Annullamento non distruttivo.** `DELETE /reservations/{id}` imposta `status: "cancelled"`. La prenotazione non viene eliminata.
+- **Errori.** Tutti gli errori hanno la forma `{ "error": { "code", "message", "details" } }`. Vedi [Errori](/api/errori).
 
-## Primo giro in tre chiamate
+## Esempio: flusso di prenotazione
 
 ```bash
 export GS_KEY="gsk_..."
 export VENUE="b1e2c3d4-0000-4000-8000-000000000001"
 
-# 1. C'e' posto?
+# 1. Verifica la disponibilità
 curl -s "https://app.gestionesala.com/api/v1/availability?venueId=$VENUE&serviceDate=2026-09-26&time=20:00&partySize=4" \
   -H "Authorization: Bearer $GS_KEY"
 
-# 2. Chi chiama?
+# 2. Cerca l'ospite per numero di telefono
 curl -s "https://app.gestionesala.com/api/v1/guests/lookup?phone=3391112233" \
   -H "Authorization: Bearer $GS_KEY"
 
-# 3. Prenota
+# 3. Crea la prenotazione
 curl -s -X POST "https://app.gestionesala.com/api/v1/reservations" \
   -H "Authorization: Bearer $GS_KEY" \
   -H "Content-Type: application/json" \
@@ -64,15 +76,15 @@ curl -s -X POST "https://app.gestionesala.com/api/v1/reservations" \
 
 <CardGroup cols={2}>
   <Card title="Autenticazione" icon="key" href="/api/autenticazione">
-    Creare, usare e revocare una chiave.
+    Header, formato della chiave, creazione e revoca.
   </Card>
   <Card title="Errori" icon="triangle-exclamation" href="/api/errori">
-    Un solo formato, codici chiusi.
+    Formato dell'errore e codici.
   </Card>
   <Card title="Idempotenza" icon="repeat" href="/api/idempotenza">
-    Ritentare senza doppioni.
+    Header `Idempotency-Key` sulle creazioni.
   </Card>
-  <Card title="Limiti" icon="gauge" href="/api/limiti">
+  <Card title="Limiti di richiesta" icon="gauge" href="/api/limiti">
     Richieste al minuto per chiave.
   </Card>
 </CardGroup>

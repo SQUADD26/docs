@@ -1,12 +1,12 @@
 ---
 title: "Automazioni"
 description: "Cosa succede da solo quando accade un fatto in sala: eventi, passi, azioni."
-icon: "workflow"
+icon: "diagram-project"
 ---
 
-Un'automazione parte da un **evento** e, attraverso attese e condizioni, arriva a una o piu' **azioni**.
+Un'automazione parte da un **evento** e, attraverso attese e condizioni, arriva a una o più **azioni**.
 
-Ogni locale nuovo parte con **7 automazioni gia' pronte, in bozza**. L'interruttore sulla riga le accende o le spegne senza aprire l'editor. Trigger e azioni si scelgono dal catalogo.
+Ogni locale nuovo parte con **7 automazioni già pronte, in bozza**. L'interruttore sulla riga le accende o le spegne senza aprire l'editor. Trigger e azioni si scelgono dal catalogo.
 
 ## Eventi (trigger)
 
@@ -21,7 +21,7 @@ Ogni locale nuovo parte con **7 automazioni gia' pronte, in bozza**. L'interrutt
 | Passo | Cosa fa |
 | --- | --- |
 | **Attendi** | Aspetta prima del passo successivo |
-| **Condizione** | Divide il flusso in si' / no |
+| **Condizione** | Divide il flusso in sì / no |
 | **Avvisa SQUADD** | Manda il fatto a SQUADD, che decide cosa scrivere all'ospite e come |
 | **Scrivi sulla scheda ospite** | Aggiorna un campo della scheda |
 | **Aggiungi tag di servizio** | Etichetta l'ospite |
@@ -31,12 +31,12 @@ Ogni locale nuovo parte con **7 automazioni gia' pronte, in bozza**. L'interrutt
 | **Avvisa il maitre** | Lascia un avviso di sala in Sala e in Home |
 
 <Note>
-  Non esiste un'azione "manda un SMS": i messaggi all'ospite partono sempre da SQUADD. L'app decide **quando e perche'**, SQUADD decide **cosa dire e come**.
+  Non esiste un'azione "manda un SMS": i messaggi all'ospite partono sempre da SQUADD. L'app decide **quando e perché**, SQUADD decide **cosa dire e come**.
 </Note>
 
 ## Consegna verso SQUADD
 
-Ogni fatto mandato a SQUADD porta una **chiave di idempotenza** che resta la stessa per tutti i tentativi: chi riceve lo riconosce anche se arriva piu' volte. Una consegna che esaurisce i tentativi resta nella **coda di scarto**, perche' qualcuno veda cosa non e' arrivato.
+Ogni fatto mandato a SQUADD porta una **chiave di idempotenza** che resta la stessa per tutti i tentativi: chi riceve lo riconosce anche se arriva più volte. Una consegna che esaurisce i tentativi resta nella **coda di scarto**, perché qualcuno veda cosa non è arrivato.
 
 ## Con l'Assistente IA
 

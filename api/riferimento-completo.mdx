@@ -1,0 +1,551 @@
+---
+title: "Riferimento completo"
+description: "Tutti gli endpoint dell'API v1 in una pagina: parametri, body, risposte ed errori. Generata da openapi.yaml."
+icon: "file-lines"
+---
+
+{/* Generata da scripts/riferimento.py. Non modificare a mano. */}
+
+Base URL: `https://app.gestionesala.com/api/v1`. Autenticazione: header `Authorization: Bearer gsk_...` su ogni richiesta.
+Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/docs/main/openapi.yaml).
+
+## Verifica la disponibilità
+
+`GET /availability`
+
+Pagina con playground: [/api/disponibilita/verifica](/api/disponibilita/verifica)
+
+Calcola se il locale può accogliere `partySize` persone all'orario `time` del giorno `serviceDate`, con lo stesso motore di disponibilità usato dall'app. La richiesta non crea e non blocca nulla: una risposta con `available: true` non riserva il posto.
+
+Se la richiesta non è soddisfacibile, la risposta è `200` con `available: false`, il motivo in `reason` e gli orari alternativi più vicini nello stesso turno in `alternatives` (anche vuoto).
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `venueId` | query | string (uuid) | sì | ID del locale. |
+| `serviceDate` | query | string (date) | sì | Giorno di servizio, formato `YYYY-MM-DD`. |
+| `time` | query | string | sì | Orario richiesto, formato `HH:MM`, nel fuso orario del locale. |
+| `partySize` | query | integer | sì | Numero di coperti. Intero maggiore di zero. |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Esito della verifica. `available: true` con l'orario trovato, oppure `available: false` con `reason` e `alternatives`. |
+| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
+| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
+| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
+| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
+| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
+| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+
+### Campi della risposta
+
+**Disponibile (`available: true`)**
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì | ID del locale. |
+| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `partySize` | integer | sì | Numero di coperti richiesto. |
+| `available` | boolean: `true` | sì | Disponibilità trovata. |
+| `time` | string | sì | Orario trovato, `HH:MM` nel fuso del locale. |
+| `startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
+| `endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
+| `turnTimeMinutes` | integer | no | Durata stimata di occupazione del tavolo, in minuti. |
+| `seats` | integer | sì | Capienza massima del tavolo o dell'unione di tavoli individuata. |
+| `overflowsShift` | boolean | no | `true` se la durata supera la fine del turno (sforamento). |
+| `alternatives` | array | sì | Sempre vuoto quando `available` è `true`. |
+| `alternatives[].time` | string | no | Orario, `HH:MM` nel fuso del locale. |
+| `alternatives[].startsAt` | string (date-time) | no | Inizio, ISO 8601 UTC. |
+| `alternatives[].endsAt` | string (date-time) | no | Fine stimata, ISO 8601 UTC. |
+| `alternatives[].turnTimeMinutes` | integer | no | Durata stimata, in minuti. |
+| `alternatives[].seats` | integer | no | Capienza massima del tavolo o dell'unione di tavoli. |
+| `alternatives[].overflowsShift` | boolean | no | `true` se la durata supera la fine del turno. |
+
+**Non disponibile (`available: false`)**
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì | ID del locale. |
+| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `partySize` | integer | sì | Numero di coperti richiesto. |
+| `available` | boolean: `false` | sì | Nessuna disponibilità all'orario richiesto. |
+| `reason` | string: `closed`, `no_shift`, `after_last_seating`, `no_turn_time_rule`, `no_table`, `pacing_full` | sì | Motivo dell'indisponibilità. `closed`: locale chiuso nel giorno richiesto. `no_shift`: nessun turno all'orario richiesto. `after_last_seating`: orario successivo all'ultimo ingresso del turno. `no_turn_time_rule`: nessuna regola di durata per quel numero di coperti. `no_table`: nessun tavolo libero con capienza compatibile. `pacing_full`: limite di coperti della fascia oraria raggiunto. |
+| `alternatives` | array | sì | Orari alternativi più vicini nello stesso turno. Può essere vuoto. |
+| `alternatives[].time` | string | no | Orario, `HH:MM` nel fuso del locale. |
+| `alternatives[].startsAt` | string (date-time) | no | Inizio, ISO 8601 UTC. |
+| `alternatives[].endsAt` | string (date-time) | no | Fine stimata, ISO 8601 UTC. |
+| `alternatives[].turnTimeMinutes` | integer | no | Durata stimata, in minuti. |
+| `alternatives[].seats` | integer | no | Capienza massima del tavolo o dell'unione di tavoli. |
+| `alternatives[].overflowsShift` | boolean | no | `true` se la durata supera la fine del turno. |
+
+```json Esempio di risposta
+{
+  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+  "serviceDate": "2026-09-26",
+  "partySize": 4,
+  "available": true,
+  "time": "20:00",
+  "startsAt": "2026-09-26T18:00:00.000Z",
+  "endsAt": "2026-09-26T20:00:00.000Z",
+  "turnTimeMinutes": 120,
+  "seats": 4,
+  "overflowsShift": false,
+  "alternatives": []
+}
+```
+
+```json Esempio di risposta
+{
+  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+  "serviceDate": "2026-09-26",
+  "partySize": 4,
+  "available": false,
+  "reason": "no_table",
+  "alternatives": [
+    {
+      "time": "21:00",
+      "startsAt": "2026-09-26T19:00:00.000Z",
+      "endsAt": "2026-09-26T21:00:00.000Z",
+      "turnTimeMinutes": 120,
+      "seats": 4,
+      "overflowsShift": false
+    }
+  ]
+}
+```
+
+## Cerca un ospite per numero di telefono
+
+`GET /guests/lookup`
+
+Pagina con playground: [/api/ospiti/cerca](/api/ospiti/cerca)
+
+Normalizza `phone` in formato E.164 e cerca l'ospite con quel numero tra i contatti dell'organizzazione. I contatti sono condivisi tra tutti i locali dell'organizzazione.
+
+Se nessun ospite ha quel numero, la risposta è `200` con `found: false` e il numero normalizzato in `phone`.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `phone` | query | string | sì | Numero di telefono in qualsiasi formato. Il server lo normalizza in E.164. Un numero non normalizzabile restituisce `400` con `details.field: "phone"`. |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Esito della ricerca. `found: true` con l'oggetto `guest`, oppure `found: false`. |
+| `400` | `invalid_request`: numero di telefono non normalizzabile. `details.field` vale `phone`. |
+| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
+| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
+| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+
+### Campi della risposta
+
+**Ospite trovato (`found: true`)**
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `found` | boolean: `true` | sì | Ospite trovato. |
+| `guest` | object | sì |  |
+| `guest.id` | string (uuid) | sì | ID dell'ospite. |
+| `guest.phone` | string | sì | Numero in formato E.164. |
+| `guest.name` | string \| null | sì | Nome dell'ospite. |
+| `guest.allergies` | string \| null | sì | Allergie registrate (allergeni di legge). |
+| `guest.notes` | string \| null | sì | Note sull'ospite. |
+| `guest.visitCount` | integer | sì | Numero di visite registrate. |
+| `guest.noShowCount` | integer | sì | Numero di mancate presentazioni. |
+
+**Ospite non trovato (`found: false`)**
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `found` | boolean: `false` | sì | Nessun ospite con quel numero. |
+| `phone` | string | sì | Numero cercato, normalizzato in E.164. |
+
+```json Esempio di risposta
+{
+  "found": true,
+  "guest": {
+    "id": "c1e2c3d4-0000-4000-8000-000000000002",
+    "phone": "+393391112233",
+    "name": "Mario Rossi",
+    "allergies": null,
+    "notes": null,
+    "visitCount": 3,
+    "noShowCount": 0
+  }
+}
+```
+
+```json Esempio di risposta
+{
+  "found": false,
+  "phone": "+393391112233"
+}
+```
+
+## Crea una prenotazione
+
+`POST /reservations`
+
+Pagina con playground: [/api/prenotazioni/crea](/api/prenotazioni/crea)
+
+Crea una prenotazione con origine `voice_agent`. Il server verifica la disponibilità e assegna il tavolo con la capienza più adatta; il tavolo assegnato non viene restituito.
+
+Se è presente `phone`, la prenotazione è associata all'ospite con quel numero. Se l'ospite non esiste, viene creato con `guestName` come nome. Se l'ospite esiste, `guestName` è ignorato. Senza `phone` la prenotazione non ha ospite associato.
+
+Se non c'è disponibilità, la risposta è `409 no_availability` con `details.reason` e `details.alternatives`, con gli stessi valori di `GET /availability`.
+
+Supporta l'header `Idempotency-Key`: una richiesta ripetuta con la stessa chiave restituisce `200` con la prenotazione creata dalla prima richiesta.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `Idempotency-Key` | header | string | no | Stringa scelta dal client, univoca per organizzazione. Una richiesta ripetuta con la stessa chiave sulla stessa operazione restituisce `200` con la risorsa creata dalla prima. Se la prima richiesta è ancora in corso: `409 idempotency_in_progress`. Se la chiave è già stata usata su un'altra operazione: `422 idempotency_key_reused`. Senza header ogni richiesta crea una nuova risorsa. |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì | ID del locale. |
+| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
+| `partySize` | integer | sì | Numero di coperti. Intero maggiore di zero. |
+| `phone` | string | no | Numero dell'ospite in qualsiasi formato, normalizzato in E.164. Facoltativo: se assente, la prenotazione non ha ospite associato. |
+| `guestName` | string | no | Nome usato solo se l'ospite con `phone` non esiste e viene creato. |
+| `notes` | string \| null | no | Note della prenotazione. |
+
+```json Esempio di body
+{
+  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+  "serviceDate": "2026-09-26",
+  "time": "20:00",
+  "partySize": 4,
+  "phone": "339 111 22 33",
+  "guestName": "Mario Rossi",
+  "notes": "compleanno"
+}
+```
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `201` | Prenotazione creata. |
+| `200` | Richiesta ripetuta con una `Idempotency-Key` già completata. Restituisce la prenotazione creata dalla prima richiesta; non ne crea una nuova. |
+| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
+| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
+| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
+| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
+| `409` | `no_availability`: nessuna disponibilità, con `details.reason` e `details.alternatives`. `conflict`: conflitto con una modifica concorrente. `idempotency_in_progress`: una richiesta con la stessa `Idempotency-Key` è ancora in corso. |
+| `422` | `idempotency_key_reused`: la `Idempotency-Key` è già stata usata per un'altra operazione. `details.operation` indica quale. |
+| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
+| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `reservation` | object | sì |  |
+| `reservation.id` | string (uuid) | sì | ID della prenotazione. |
+| `reservation.venueId` | string (uuid) | sì | ID del locale. |
+| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `reservation.time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
+| `reservation.startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
+| `reservation.endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
+| `reservation.partySize` | integer | sì | Numero di coperti. |
+| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì | Stato della prenotazione. |
+| `reservation.tableAssigned` | boolean | sì | `true` se è assegnato un tavolo o un'unione di tavoli. Il tavolo non viene esposto. |
+| `reservation.needsAttention` | boolean | sì | `true` se la prenotazione è "da sistemare": valida, ma senza un tavolo compatibile dopo una modifica. Richiede un intervento in sala. |
+| `reservation.notes` | string \| null | sì | Note della prenotazione. |
+| `reservation.guest` | object \| null | sì | Scheda di servizio dell'ospite, `null` se la prenotazione non ha ospite. |
+| `reservation.guest.name` | string \| null | no | Nome dell'ospite. |
+| `reservation.guest.allergies` | string \| null | no | Allergie registrate. |
+
+```json Esempio di risposta
+{
+  "reservation": {
+    "id": "d1e2c3d4-0000-4000-8000-000000000003",
+    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+    "serviceDate": "2026-09-26",
+    "time": "20:00",
+    "startsAt": "2026-09-26T18:00:00.000Z",
+    "endsAt": "2026-09-26T20:00:00.000Z",
+    "partySize": 4,
+    "status": "confirmed",
+    "tableAssigned": true,
+    "needsAttention": false,
+    "notes": "compleanno",
+    "guest": {
+      "name": "Mario Rossi",
+      "allergies": null
+    }
+  }
+}
+```
+
+## Aggiorna una prenotazione
+
+`PATCH /reservations/{id}`
+
+Pagina con playground: [/api/prenotazioni/aggiorna](/api/prenotazioni/aggiorna)
+
+Aggiorna `serviceDate`, `time`, `partySize` o `notes`. Il body deve contenere almeno uno di questi campi; gli altri campi sono ignorati. Il tavolo non è modificabile tramite API.
+
+Se cambiano `serviceDate`, `time` o `partySize`, il server ricalcola l'assegnazione del tavolo. Se nessun tavolo è compatibile, la prenotazione resta valida: la risposta è `200` con `tableAssigned: false` e `needsAttention: true`.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì | ID della prenotazione. |
+
+### Body (JSON)
+
+Almeno uno tra `serviceDate`, `time`, `partySize`, `notes`. Gli altri campi sono ignorati.
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `serviceDate` | string (date) | no | Nuovo giorno di servizio, `YYYY-MM-DD`. |
+| `time` | string | no | Nuovo orario, `HH:MM` nel fuso del locale. |
+| `partySize` | integer | no | Nuovo numero di coperti. Intero maggiore di zero. |
+| `notes` | string \| null | no | Nuove note. `null` le cancella. |
+
+```json Esempio di body
+{
+  "time": "21:00",
+  "partySize": 2
+}
+```
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Prenotazione aggiornata. |
+| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
+| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
+| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
+| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
+| `409` | `conflict`: la prenotazione è stata modificata da un'altra richiesta o è in uso. Rileggere la prenotazione prima di ripetere la richiesta. |
+| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
+| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `reservation` | object | sì |  |
+| `reservation.id` | string (uuid) | sì | ID della prenotazione. |
+| `reservation.venueId` | string (uuid) | sì | ID del locale. |
+| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `reservation.time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
+| `reservation.startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
+| `reservation.endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
+| `reservation.partySize` | integer | sì | Numero di coperti. |
+| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì | Stato della prenotazione. |
+| `reservation.tableAssigned` | boolean | sì | `true` se è assegnato un tavolo o un'unione di tavoli. Il tavolo non viene esposto. |
+| `reservation.needsAttention` | boolean | sì | `true` se la prenotazione è "da sistemare": valida, ma senza un tavolo compatibile dopo una modifica. Richiede un intervento in sala. |
+| `reservation.notes` | string \| null | sì | Note della prenotazione. |
+| `reservation.guest` | object \| null | sì | Scheda di servizio dell'ospite, `null` se la prenotazione non ha ospite. |
+| `reservation.guest.name` | string \| null | no | Nome dell'ospite. |
+| `reservation.guest.allergies` | string \| null | no | Allergie registrate. |
+
+```json Esempio di risposta
+{
+  "reservation": {
+    "id": "d1e2c3d4-0000-4000-8000-000000000003",
+    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+    "serviceDate": "2026-09-26",
+    "time": "21:00",
+    "startsAt": "2026-09-26T19:00:00.000Z",
+    "endsAt": "2026-09-26T20:30:00.000Z",
+    "partySize": 2,
+    "status": "confirmed",
+    "tableAssigned": true,
+    "needsAttention": false,
+    "notes": "compleanno",
+    "guest": {
+      "name": "Mario Rossi",
+      "allergies": null
+    }
+  }
+}
+```
+
+## Annulla una prenotazione
+
+`DELETE /reservations/{id}`
+
+Pagina con playground: [/api/prenotazioni/annulla](/api/prenotazioni/annulla)
+
+Imposta `status` a `cancelled`. La prenotazione non viene eliminata e resta leggibile nell'app.
+
+Effetto collaterale: il server avvia il richiamo del primo ospite idoneo nella coda clienti del locale per lo stesso giorno di servizio. Un errore del richiamo non modifica la risposta.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `id` | path | string (uuid) | sì | ID della prenotazione. |
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `200` | Prenotazione annullata, con `status` uguale a `cancelled`. |
+| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
+| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
+| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
+| `409` | `conflict`: la prenotazione è stata modificata da un'altra richiesta o è in uso. Rileggere la prenotazione prima di ripetere la richiesta. |
+| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
+| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `reservation` | object | sì |  |
+| `reservation.id` | string (uuid) | sì | ID della prenotazione. |
+| `reservation.venueId` | string (uuid) | sì | ID del locale. |
+| `reservation.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `reservation.time` | string | sì | Orario, `HH:MM` nel fuso del locale. |
+| `reservation.startsAt` | string (date-time) | sì | Inizio, ISO 8601 UTC. |
+| `reservation.endsAt` | string (date-time) | sì | Fine stimata, ISO 8601 UTC. |
+| `reservation.partySize` | integer | sì | Numero di coperti. |
+| `reservation.status` | string: `created`, `confirmed`, `arrived`, `seated`, `released`, `completed`, `no_show`, `cancelled` | sì | Stato della prenotazione. |
+| `reservation.tableAssigned` | boolean | sì | `true` se è assegnato un tavolo o un'unione di tavoli. Il tavolo non viene esposto. |
+| `reservation.needsAttention` | boolean | sì | `true` se la prenotazione è "da sistemare": valida, ma senza un tavolo compatibile dopo una modifica. Richiede un intervento in sala. |
+| `reservation.notes` | string \| null | sì | Note della prenotazione. |
+| `reservation.guest` | object \| null | sì | Scheda di servizio dell'ospite, `null` se la prenotazione non ha ospite. |
+| `reservation.guest.name` | string \| null | no | Nome dell'ospite. |
+| `reservation.guest.allergies` | string \| null | no | Allergie registrate. |
+
+```json Esempio di risposta
+{
+  "reservation": {
+    "id": "d1e2c3d4-0000-4000-8000-000000000003",
+    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+    "serviceDate": "2026-09-26",
+    "time": "21:00",
+    "startsAt": "2026-09-26T19:00:00.000Z",
+    "endsAt": "2026-09-26T20:30:00.000Z",
+    "partySize": 2,
+    "status": "cancelled",
+    "tableAssigned": true,
+    "needsAttention": false,
+    "notes": "compleanno",
+    "guest": {
+      "name": "Mario Rossi",
+      "allergies": null
+    }
+  }
+}
+```
+
+## Aggiungi un ospite alla coda clienti
+
+`POST /waitlist`
+
+Pagina con playground: [/api/coda-clienti/aggiungi](/api/coda-clienti/aggiungi)
+
+Inserisce un ospite nella coda clienti del locale per il giorno `serviceDate`, con la fascia oraria accettata dall'ospite (`earliestTime`-`latestTime`). L'ingresso nasce con `status: "waiting"`.
+
+`phone` è obbligatorio: l'ingresso è associato all'ospite con quel numero, creato con `guestName` come nome se non esiste.
+
+Supporta l'header `Idempotency-Key` con le stesse regole di `POST /reservations`.
+
+### Parametri
+
+| Nome | Posizione | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- | --- |
+| `Idempotency-Key` | header | string | no | Stringa scelta dal client, univoca per organizzazione. Una richiesta ripetuta con la stessa chiave sulla stessa operazione restituisce `200` con la risorsa creata dalla prima. Se la prima richiesta è ancora in corso: `409 idempotency_in_progress`. Se la chiave è già stata usata su un'altra operazione: `422 idempotency_key_reused`. Senza header ogni richiesta crea una nuova risorsa. |
+
+### Body (JSON)
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `venueId` | string (uuid) | sì | ID del locale. |
+| `serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `partySize` | integer | sì | Numero di coperti. Intero maggiore di zero. |
+| `earliestTime` | string | sì | Inizio della fascia accettata, `HH:MM` nel fuso del locale. |
+| `latestTime` | string | sì | Fine della fascia accettata, `HH:MM` nel fuso del locale. |
+| `phone` | string | sì | Numero dell'ospite in qualsiasi formato, normalizzato in E.164. |
+| `guestName` | string | no | Nome usato solo se l'ospite con `phone` non esiste e viene creato. |
+
+```json Esempio di body
+{
+  "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+  "serviceDate": "2026-09-26",
+  "partySize": 2,
+  "earliestTime": "20:00",
+  "latestTime": "21:30",
+  "phone": "+393391112233",
+  "guestName": "Mario Rossi"
+}
+```
+
+### Risposte
+
+| Status | Descrizione |
+| --- | --- |
+| `201` | Ingresso in coda clienti creato. |
+| `200` | Richiesta ripetuta con una `Idempotency-Key` già completata. Restituisce l'ingresso creato dalla prima richiesta. |
+| `400` | `invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere. |
+| `401` | `unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata. |
+| `403` | `forbidden`: il membro associato alla chiave non ha il permesso per l'operazione. |
+| `404` | `not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave. |
+| `409` | `idempotency_in_progress`: una richiesta con la stessa `Idempotency-Key` è ancora in corso. |
+| `422` | `idempotency_key_reused`: la `Idempotency-Key` è già stata usata per un'altra operazione. `details.operation` indica quale. |
+| `429` | `rate_limited`: superato il limite di richieste al minuto della chiave. |
+| `500` | `internal_error`: errore del server. Il dettaglio tecnico non viene esposto. |
+
+### Campi della risposta
+
+| Campo | Tipo | Sempre presente | Descrizione |
+| --- | --- | --- | --- |
+| `entry` | object | sì |  |
+| `entry.id` | string (uuid) | sì | ID dell'ingresso in coda clienti. |
+| `entry.venueId` | string (uuid) | sì | ID del locale. |
+| `entry.serviceDate` | string (date) | sì | Giorno di servizio, `YYYY-MM-DD`. |
+| `entry.partySize` | integer | sì | Numero di coperti. |
+| `entry.earliestTime` | string | sì | Inizio della fascia, `HH:MM`. |
+| `entry.latestTime` | string | sì | Fine della fascia, `HH:MM`. |
+| `entry.status` | string | sì | Stato dell'ingresso. `waiting` alla creazione. |
+| `entry.guest` | object \| null | sì |  |
+| `entry.guest.name` | string \| null | no | Nome dell'ospite. |
+| `entry.guest.phone` | string | no | Numero in formato E.164. |
+
+```json Esempio di risposta
+{
+  "entry": {
+    "id": "e1e2c3d4-0000-4000-8000-000000000004",
+    "venueId": "b1e2c3d4-0000-4000-8000-000000000001",
+    "serviceDate": "2026-09-26",
+    "partySize": 2,
+    "earliestTime": "20:00",
+    "latestTime": "21:30",
+    "status": "waiting",
+    "guest": {
+      "name": "Mario Rossi",
+      "phone": "+393391112233"
+    }
+  }
+}
+```
+
+## Oggetto errore
+
+Tutte le risposte di errore hanno questo formato.
+
+| Campo | Tipo | Obbligatorio | Descrizione |
+| --- | --- | --- | --- |
+| `error` | object | sì |  |
+| `error.code` | string: `invalid_request`, `unauthenticated`, `api_key_invalid`, `api_key_revoked`, `forbidden`, `not_found`, `no_availability`, `conflict`, `idempotency_in_progress`, `idempotency_key_reused`, `rate_limited`, `internal_error` | sì | Codice macchina dell'errore. Lo status HTTP dipende solo da `code`. |
+| `error.message` | string | sì | Descrizione in italiano. Il testo può cambiare. |
+| `error.details` | object | sì | Dati aggiuntivi. Sempre presente, anche vuoto. |

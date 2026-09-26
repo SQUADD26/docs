@@ -1,10 +1,14 @@
 ---
 title: "Errori"
-description: "Un solo formato di errore per tutti gli endpoint e l'elenco chiuso dei codici."
+description: "Formato della risposta di errore, codici HTTP, codici errore e motivi di indisponibilità."
 icon: "triangle-exclamation"
 ---
 
-Ogni errore ha la stessa forma, su tutti gli endpoint:
+L'API usa gli status HTTP standard. I codici `2xx` indicano successo, i codici `4xx` un errore nella richiesta, il codice `500` un errore del server.
+
+## Formato
+
+Tutti gli errori, su tutti gli endpoint, hanno questo formato:
 
 ```json
 {
@@ -16,42 +20,47 @@ Ogni errore ha la stessa forma, su tutti gli endpoint:
 }
 ```
 
-- `code`: uno dei valori della tabella sotto. **Decidi in base a `code`**, non a `message`.
-- `message`: testo leggibile in italiano, puo' cambiare.
-- `details`: oggetto, sempre presente, a volte vuoto.
-
-Lo status HTTP dipende solo da `code`.
+| Campo | Tipo | Descrizione |
+| --- | --- | --- |
+| `error.code` | string | Codice macchina. Valori nella tabella sotto. Lo status HTTP dipende solo da `code`. |
+| `error.message` | string | Descrizione in italiano. Il testo può cambiare: non usarlo per la logica del client. |
+| `error.details` | object | Dati aggiuntivi. Sempre presente, anche vuoto. |
 
 ## Codici
 
-| Status | `code` | Significato | Cosa fare |
+| Status | `code` | Causa | Azione del client |
 | --- | --- | --- | --- |
-| `400` | `invalid_request` | Parametri mancanti o malformati. `details.fields` elenca quali (eccezione: il numero di telefono non valido su `GET /guests/lookup`, e indirettamente su `POST /reservations` e `POST /waitlist`, usa `details.field`, singolare) | Correggi la richiesta |
-| `401` | `unauthenticated` | Nessuna chiave | Aggiungi `Authorization: Bearer gsk_...` |
-| `401` | `api_key_invalid` | Chiave sconosciuta | Controlla la chiave |
-| `401` | `api_key_revoked` | Chiave revocata | Crea una chiave nuova |
-| `404` | `not_found` | Locale, prenotazione o ospite in coda inesistenti o non accessibili | Controlla gli id |
-| `409` | `no_availability` | Non c'e' posto. `details.reason` e `details.alternatives` come in `/availability` | Proponi un'alternativa |
-| `409` | `conflict` | La prenotazione e' cambiata o e' in uso | Rileggi e ritenta |
-| `409` | `idempotency_in_progress` | Una richiesta con la stessa `Idempotency-Key` e' ancora in corso | Ritenta fra poco con la stessa chiave |
-| `422` | `idempotency_key_reused` | Stessa `Idempotency-Key` gia' usata per un'altra operazione | Usa una chiave nuova |
-| `429` | `rate_limited` | Troppe richieste al minuto per questa chiave | Rallenta e ritenta |
-| `500` | `internal_error` | Errore nostro | Ritenta; se persiste, segnalalo |
+| `400` | `invalid_request` | Parametri mancanti o malformati. `details.fields` elenca i campi. Per un numero di telefono non valido `details.field` vale `phone` | Correggere la richiesta |
+| `401` | `unauthenticated` | Header `Authorization` assente | Inviare `Authorization: Bearer gsk_...` |
+| `401` | `api_key_invalid` | Chiave sconosciuta o malformata | Verificare la chiave |
+| `401` | `api_key_revoked` | Chiave revocata | Non ripetere la richiesta. Creare una nuova chiave |
+| `403` | `forbidden` | Il membro associato alla chiave non ha il permesso per l'operazione | Assegnare il permesso al membro nell'app |
+| `404` | `not_found` | Locale, prenotazione o ingresso in coda clienti inesistente o non visibile alla chiave | Verificare gli ID |
+| `409` | `no_availability` | Nessuna disponibilità per la prenotazione. `details.reason` e `details.alternatives` hanno gli stessi valori di `GET /availability` | Proporre un'alternativa o `POST /waitlist` |
+| `409` | `conflict` | La prenotazione è stata modificata da un'altra richiesta o è in uso | Rileggere e ripetere la richiesta |
+| `409` | `idempotency_in_progress` | Una richiesta con la stessa `Idempotency-Key` è ancora in corso | Ripetere dopo qualche secondo con la stessa chiave |
+| `422` | `idempotency_key_reused` | La `Idempotency-Key` è già stata usata per un'altra operazione. `details.operation` indica quale | Usare una nuova chiave |
+| `429` | `rate_limited` | Superato il limite di richieste al minuto della chiave | Ripetere con backoff esponenziale. Vedi [Limiti di richiesta](/api/limiti) |
+| `500` | `internal_error` | Errore del server. `message` vale sempre `errore imprevisto: riprova fra poco` | Ripetere la richiesta. Se persiste, segnalarlo |
 
-## "No" non e' un errore
+## Esiti negativi con status `200`
 
-Due risposte negative arrivano con `200`, non come errore:
+Due endpoint restituiscono un esito negativo come risposta `200`, non come errore:
 
-- `GET /availability` senza posto: `available: false`, `reason` e `alternatives`.
-- `GET /guests/lookup` senza ospite: `found: false`. E' un ospite nuovo: chiedigli il nome.
+| Endpoint | Condizione | Risposta |
+| --- | --- | --- |
+| `GET /availability` | Nessuna disponibilità all'orario richiesto | `available: false`, `reason`, `alternatives` |
+| `GET /guests/lookup` | Nessun ospite con quel numero | `found: false`, `phone` normalizzato |
 
-### Motivi di indisponibilita' (`reason`)
+## Motivi di indisponibilità
 
-| `reason` | Significato |
+Valori di `reason` in `GET /availability` e di `details.reason` in `409 no_availability`.
+
+| `reason` | Causa |
 | --- | --- |
-| `closed` | Il locale e' chiuso quel giorno |
-| `no_shift` | Nessun turno a quell'ora |
-| `after_last_seating` | Passato l'ultimo ingresso |
-| `no_turn_time_rule` | Manca una regola di durata per quei coperti |
-| `no_table` | Nessun tavolo libero della capienza giusta |
-| `pacing_full` | Tetto coperti della fascia oraria pieno |
+| `closed` | Locale chiuso nel giorno richiesto |
+| `no_shift` | Nessun turno all'orario richiesto |
+| `after_last_seating` | Orario successivo all'ultimo ingresso del turno |
+| `no_turn_time_rule` | Nessuna regola di durata per quel numero di coperti |
+| `no_table` | Nessun tavolo libero con capienza compatibile |
+| `pacing_full` | Limite di coperti della fascia oraria raggiunto |

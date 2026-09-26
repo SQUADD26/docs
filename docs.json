@@ -2,19 +2,19 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Gestione Sala",
-  "description": "Documentazione di Gestione Sala: guida all'app per ristoranti e API pubblica v1 per prenotazioni, disponibilita', ospiti e coda clienti.",
+  "description": "Documentazione di Gestione Sala: guida all'app per ristoranti e riferimento dell'API v1 (disponibilità, ospiti, prenotazioni, coda clienti).",
   "colors": {
-    "primary": "#191919",
-    "light": "#FFF3D6",
-    "dark": "#191919"
+    "primary": "#C34517",
+    "light": "#FA6E1D",
+    "dark": "#C34517"
   },
   "fonts": {
     "family": "Geist"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/favicon.png",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg",
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png",
     "href": "https://gestionesala.com"
   },
   "navbar": {
@@ -61,6 +61,7 @@
           {
             "tab": "API",
             "icon": "code",
+            "openapi": "openapi.yaml",
             "groups": [
               {
                 "group": "Per iniziare",
@@ -73,8 +74,41 @@
                 ]
               },
               {
-                "group": "Riferimento",
-                "openapi": "openapi.yaml"
+                "group": "Disponibilità",
+                "icon": "calendar-check",
+                "pages": [
+                  "GET /availability"
+                ]
+              },
+              {
+                "group": "Ospiti",
+                "icon": "user",
+                "pages": [
+                  "GET /guests/lookup"
+                ]
+              },
+              {
+                "group": "Prenotazioni",
+                "icon": "calendar",
+                "pages": [
+                  "POST /reservations",
+                  "PATCH /reservations/{id}",
+                  "DELETE /reservations/{id}"
+                ]
+              },
+              {
+                "group": "Coda clienti",
+                "icon": "list-ol",
+                "pages": [
+                  "POST /waitlist"
+                ]
+              },
+              {
+                "group": "Tutti gli endpoint",
+                "icon": "file-lines",
+                "pages": [
+                  "api/riferimento-completo"
+                ]
               }
             ]
           },
@@ -127,6 +161,9 @@
     }
   },
   "search": {
-    "prompt": "Cerca nella documentazione..."
+    "prompt": "Cerca nella documentazione"
+  },
+  "markdown": {
+    "instructions": "Documentazione di Gestione Sala. Il testo completo, incluso il riferimento API, è in https://docs.gestionesala.com/llms-full.txt. Per endpoint, campi e codici di errore la fonte di verità è openapi.yaml: non usare endpoint o campi non documentati."
   }
 }

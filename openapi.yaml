@@ -1,23 +1,23 @@
 openapi: 3.1.0
 info:
-  title: Gestione Sala — API pubblica v1
+  title: Gestione Sala API v1
   version: "1.0.0"
   description: >
-    API REST per l'agente vocale: disponibilita', anagrafica ospite dal
-    numero, prenotazioni, lista d'attesa. Ogni chiamata parla come un membro
-    dell'organizzazione: la chiave API autentica e la RLS di sempre decide
-    cosa si vede.
+    API REST di Gestione Sala per sistemi esterni, ad esempio un agente
+    vocale: disponibilità, ricerca ospiti per telefono, prenotazioni e coda
+    clienti. Ogni richiesta è autenticata con una chiave API e agisce con i
+    permessi del membro dell'organizzazione associato alla chiave.
 servers:
   - url: https://app.gestionesala.com/api/v1
 tags:
-  - name: Disponibilita
-    description: C'e' posto?
+  - name: Disponibilità
+    description: Verifica della disponibilità di un locale per data, ora e coperti.
   - name: Ospiti
-    description: Riconoscere chi chiama dal numero.
+    description: Ricerca degli ospiti dell'organizzazione per numero di telefono.
   - name: Prenotazioni
-    description: Creare, modificare, disdire.
-  - name: Lista d'attesa
-    description: Parcheggiare chi non trova posto.
+    description: Creazione, modifica e annullamento delle prenotazioni.
+  - name: Coda clienti
+    description: Inserimento degli ospiti nella coda clienti di un locale.
 
 security:
   - ApiKeyAuth: []
@@ -25,35 +25,53 @@ security:
 paths:
   /availability:
     get:
-      tags: [Disponibilita]
-      summary: Chiede se c'e' posto
+      tags: [Disponibilità]
+      summary: Verifica la disponibilità
       description: >
-        Il no non e' un errore: e' una risposta con le alternative piu'
-        vicine entro la finestra del turno.
+        Calcola se il locale può accogliere `partySize` persone all'orario
+        `time` del giorno `serviceDate`, con lo stesso motore di disponibilità
+        usato dall'app. La richiesta non crea e non blocca nulla: una risposta
+        con `available: true` non riserva il posto.
+
+
+        Se la richiesta non è soddisfacibile, la risposta è `200` con
+        `available: false`, il motivo in `reason` e gli orari alternativi più
+        vicini nello stesso turno in `alternatives` (anche vuoto).
       operationId: getAvailability
+      x-mint:
+        metadata:
+          sidebarTitle: "Verifica la disponibilità"
+        href: /api/disponibilita/verifica
       parameters:
         - name: venueId
           in: query
           required: true
+          description: ID del locale.
           schema: { type: string, format: uuid }
+          example: "b1e2c3d4-0000-4000-8000-000000000001"
         - name: serviceDate
           in: query
           required: true
+          description: Giorno di servizio, formato `YYYY-MM-DD`.
           schema: { type: string, format: date }
           example: "2026-09-26"
         - name: time
           in: query
           required: true
+          description: Orario richiesto, formato `HH:MM`, nel fuso orario del locale.
           schema: { type: string, pattern: "^\\d{2}:\\d{2}$" }
           example: "20:00"
         - name: partySize
           in: query
           required: true
+          description: Numero di coperti. Intero maggiore di zero.
           schema: { type: integer, minimum: 1 }
           example: 4
       responses:
         "200":
-          description: Disponibile, o no con alternative.
+          description: >
+            Esito della verifica. `available: true` con l'orario trovato, oppure
+            `available: false` con `reason` e `alternatives`.
           content:
             application/json:
               schema:
@@ -62,6 +80,7 @@ paths:
                   - $ref: "#/components/schemas/AvailabilityRefused"
               examples:
                 disponibile:
+                  summary: Disponibile
                   value:
                     venueId: "b1e2c3d4-0000-4000-8000-000000000001"
                     serviceDate: "2026-09-26"
@@ -74,13 +93,14 @@ paths:
                     seats: 4
                     overflowsShift: false
                     alternatives: []
-                rifiutata:
+                nonDisponibile:
+                  summary: Non disponibile, con alternative
                   value:
                     venueId: "b1e2c3d4-0000-4000-8000-000000000001"
                     serviceDate: "2026-09-26"
                     partySize: 4
                     available: false
-                    reason: "no_shift"
+                    reason: "no_table"
                     alternatives:
                       - time: "21:00"
                         startsAt: "2026-09-26T19:00:00.000Z"
@@ -90,26 +110,41 @@ paths:
                         overflowsShift: false
         "400": { $ref: "#/components/responses/InvalidRequest" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
 
   /guests/lookup:
     get:
       tags: [Ospiti]
-      summary: Riconosce l'ospite dal numero
+      summary: Cerca un ospite per numero di telefono
       description: >
-        Non trovato non e' un errore: e' un ospite nuovo, l'agente deve
-        chiedergli il nome.
+        Normalizza `phone` in formato E.164 e cerca l'ospite con quel numero
+        tra i contatti dell'organizzazione. I contatti sono condivisi tra
+        tutti i locali dell'organizzazione.
+
+
+        Se nessun ospite ha quel numero, la risposta è `200` con
+        `found: false` e il numero normalizzato in `phone`.
       operationId: lookupGuest
+      x-mint:
+        metadata:
+          sidebarTitle: "Cerca un ospite per numero di telefono"
+        href: /api/ospiti/cerca
       parameters:
         - name: phone
           in: query
           required: true
+          description: >
+            Numero di telefono in qualsiasi formato. Il server lo normalizza in
+            E.164. Un numero non normalizzabile restituisce `400` con
+            `details.field: "phone"`.
           schema: { type: string }
-          description: "Qualunque formato: si normalizza in E.164 lato server."
           example: "339 111 22 33"
       responses:
         "200":
-          description: Trovato o no.
+          description: "Esito della ricerca. `found: true` con l'oggetto `guest`, oppure `found: false`."
           content:
             application/json:
               schema:
@@ -118,6 +153,7 @@ paths:
                   - $ref: "#/components/schemas/GuestNotFound"
               examples:
                 trovato:
+                  summary: Ospite trovato
                   value:
                     found: true
                     guest:
@@ -129,16 +165,42 @@ paths:
                       visitCount: 3
                       noShowCount: 0
                 nonTrovato:
+                  summary: Nessun ospite con quel numero
                   value: { found: false, phone: "+393391112233" }
-        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "400": { $ref: "#/components/responses/InvalidPhone" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
 
   /reservations:
     post:
       tags: [Prenotazioni]
       summary: Crea una prenotazione
+      description: >
+        Crea una prenotazione con origine `voice_agent`. Il server verifica la
+        disponibilità e assegna il tavolo con la capienza più adatta; il
+        tavolo assegnato non viene restituito.
+
+
+        Se è presente `phone`, la prenotazione è associata all'ospite con
+        quel numero. Se l'ospite non esiste, viene creato con `guestName` come
+        nome. Se l'ospite esiste, `guestName` è ignorato. Senza `phone` la
+        prenotazione non ha ospite associato.
+
+
+        Se non c'è disponibilità, la risposta è `409 no_availability` con
+        `details.reason` e `details.alternatives`, con gli stessi valori di
+        `GET /availability`.
+
+
+        Supporta l'header `Idempotency-Key`: una richiesta ripetuta con la
+        stessa chiave restituisce `200` con la prenotazione creata dalla
+        prima richiesta.
       operationId: createReservation
+      x-mint:
+        metadata:
+          sidebarTitle: "Crea una prenotazione"
+        href: /api/prenotazioni/crea
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -156,7 +218,7 @@ paths:
               notes: "compleanno"
       responses:
         "201":
-          description: Creata adesso.
+          description: Prenotazione creata.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReservationEnvelope" }
@@ -176,27 +238,40 @@ paths:
                   guest: { name: "Mario Rossi", allergies: null }
         "200":
           description: >
-            Stessa `Idempotency-Key` di una richiesta gia' conclusa: ritorna
-            la risorsa di allora, non ne crea una seconda.
+            Richiesta ripetuta con una `Idempotency-Key` già completata.
+            Restituisce la prenotazione creata dalla prima richiesta; non ne
+            crea una nuova.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReservationEnvelope" }
         "400": { $ref: "#/components/responses/InvalidRequest" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { $ref: "#/components/responses/NoAvailabilityOrIdempotencyInProgress" }
+        "409": { $ref: "#/components/responses/CreateConflict" }
         "422": { $ref: "#/components/responses/IdempotencyKeyReused" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
 
   /reservations/{id}:
     patch:
       tags: [Prenotazioni]
-      summary: Modifica orario, data, coperti o note
+      summary: Aggiorna una prenotazione
       description: >
-        Il tavolo non si sceglie da qui: e' una decisione della sala. Se
-        dopo la modifica nessun tavolo regge, la prenotazione resta
-        `needsAttention: true` invece di essere rifiutata.
+        Aggiorna `serviceDate`, `time`, `partySize` o `notes`. Il body deve
+        contenere almeno uno di questi campi; gli altri campi sono ignorati.
+        Il tavolo non è modificabile tramite API.
+
+
+        Se cambiano `serviceDate`, `time` o `partySize`, il server ricalcola
+        l'assegnazione del tavolo. Se nessun tavolo è compatibile, la
+        prenotazione resta valida: la risposta è `200` con
+        `tableAssigned: false` e `needsAttention: true`.
       operationId: updateReservation
+      x-mint:
+        metadata:
+          sidebarTitle: "Aggiorna una prenotazione"
+        href: /api/prenotazioni/aggiorna
       parameters:
         - $ref: "#/components/parameters/ReservationId"
       requestBody:
@@ -207,24 +282,7 @@ paths:
             example: { time: "21:00", partySize: 2 }
       responses:
         "200":
-          description: Aggiornata.
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ReservationEnvelope" }
-        "400": { $ref: "#/components/responses/InvalidRequest" }
-        "401": { $ref: "#/components/responses/Unauthenticated" }
-        "404": { $ref: "#/components/responses/NotFound" }
-        "409": { $ref: "#/components/responses/Conflict" }
-        "429": { $ref: "#/components/responses/RateLimited" }
-    delete:
-      tags: [Prenotazioni]
-      summary: Disdice (cancella lo stato, non la riga)
-      operationId: cancelReservation
-      parameters:
-        - $ref: "#/components/parameters/ReservationId"
-      responses:
-        "200":
-          description: Prenotazione in stato `cancelled`.
+          description: Prenotazione aggiornata.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReservationEnvelope" }
@@ -235,7 +293,52 @@ paths:
                   serviceDate: "2026-09-26"
                   time: "21:00"
                   startsAt: "2026-09-26T19:00:00.000Z"
-                  endsAt: "2026-09-26T20:00:00.000Z"
+                  endsAt: "2026-09-26T20:30:00.000Z"
+                  partySize: 2
+                  status: "confirmed"
+                  tableAssigned: true
+                  needsAttention: false
+                  notes: "compleanno"
+                  guest: { name: "Mario Rossi", allergies: null }
+        "400": { $ref: "#/components/responses/InvalidRequest" }
+        "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
+    delete:
+      tags: [Prenotazioni]
+      summary: Annulla una prenotazione
+      description: >
+        Imposta `status` a `cancelled`. La prenotazione non viene eliminata e
+        resta leggibile nell'app.
+
+
+        Effetto collaterale: il server avvia il richiamo del primo ospite
+        idoneo nella coda clienti del locale per lo stesso giorno di
+        servizio. Un errore del richiamo non modifica la risposta.
+      operationId: cancelReservation
+      x-mint:
+        metadata:
+          sidebarTitle: "Annulla una prenotazione"
+        href: /api/prenotazioni/annulla
+      parameters:
+        - $ref: "#/components/parameters/ReservationId"
+      responses:
+        "200":
+          description: Prenotazione annullata, con `status` uguale a `cancelled`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReservationEnvelope" }
+              example:
+                reservation:
+                  id: "d1e2c3d4-0000-4000-8000-000000000003"
+                  venueId: "b1e2c3d4-0000-4000-8000-000000000001"
+                  serviceDate: "2026-09-26"
+                  time: "21:00"
+                  startsAt: "2026-09-26T19:00:00.000Z"
+                  endsAt: "2026-09-26T20:30:00.000Z"
                   partySize: 2
                   status: "cancelled"
                   tableAssigned: true
@@ -243,14 +346,33 @@ paths:
                   notes: "compleanno"
                   guest: { name: "Mario Rossi", allergies: null }
         "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
 
   /waitlist:
     post:
-      tags: [Lista d'attesa]
-      summary: Parcheggia un ospite senza posto
+      tags: [Coda clienti]
+      summary: Aggiungi un ospite alla coda clienti
+      description: >
+        Inserisce un ospite nella coda clienti del locale per il giorno
+        `serviceDate`, con la fascia oraria accettata dall'ospite
+        (`earliestTime`-`latestTime`). L'ingresso nasce con `status: "waiting"`.
+
+
+        `phone` è obbligatorio: l'ingresso è associato all'ospite con quel
+        numero, creato con `guestName` come nome se non esiste.
+
+
+        Supporta l'header `Idempotency-Key` con le stesse regole di
+        `POST /reservations`.
       operationId: createWaitlistEntry
+      x-mint:
+        metadata:
+          sidebarTitle: "Aggiungi un ospite alla coda clienti"
+        href: /api/coda-clienti/aggiungi
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -268,7 +390,7 @@ paths:
               guestName: "Mario Rossi"
       responses:
         "201":
-          description: Parcheggiato.
+          description: Ingresso in coda clienti creato.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/WaitlistEnvelope" }
@@ -283,169 +405,196 @@ paths:
                   status: "waiting"
                   guest: { name: "Mario Rossi", phone: "+393391112233" }
         "200":
-          description: Stessa `Idempotency-Key`, gia' concluso.
+          description: >
+            Richiesta ripetuta con una `Idempotency-Key` già completata.
+            Restituisce l'ingresso creato dalla prima richiesta.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/WaitlistEnvelope" }
         "400": { $ref: "#/components/responses/InvalidRequest" }
         "401": { $ref: "#/components/responses/Unauthenticated" }
+        "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-        "409": { $ref: "#/components/responses/NoAvailabilityOrIdempotencyInProgress" }
+        "409": { $ref: "#/components/responses/IdempotencyInProgress" }
         "422": { $ref: "#/components/responses/IdempotencyKeyReused" }
         "429": { $ref: "#/components/responses/RateLimited" }
+        "500": { $ref: "#/components/responses/InternalError" }
 
 components:
   securitySchemes:
     ApiKeyAuth:
       type: http
       scheme: bearer
-      bearerFormat: "gsk_<64 esadecimali>"
+      bearerFormat: "gsk_ seguito da 64 caratteri esadecimali"
       description: >
-        `Authorization: Bearer gsk_...`. La chiave identifica un'organizzazione
-        e un membro vero: da quel momento vale la RLS di sempre, non un
-        secondo controllo sui dati.
+        Header `Authorization: Bearer gsk_...`. La chiave identifica
+        un'organizzazione e un membro di quell'organizzazione. Ogni richiesta
+        ha gli stessi permessi e la stessa visibilità sui locali di quel
+        membro nell'app.
 
   parameters:
     ReservationId:
       name: id
       in: path
       required: true
+      description: ID della prenotazione.
       schema: { type: string, format: uuid }
+      example: "d1e2c3d4-0000-4000-8000-000000000003"
     IdempotencyKey:
       name: Idempotency-Key
       in: header
       required: false
-      schema: { type: string }
       description: >
-        Facoltativa. Stessa chiave sulla stessa operazione: la seconda
-        chiamata ritrova la risorsa creata dalla prima (200) invece di
-        crearne un'altra (201). In corso -> 409 `idempotency_in_progress`.
-        Riusata su un'altra operazione -> 422 `idempotency_key_reused`.
-        Senza chiave, ogni chiamata e' una chiamata nuova.
+        Stringa scelta dal client, univoca per organizzazione. Una richiesta
+        ripetuta con la stessa chiave sulla stessa operazione restituisce
+        `200` con la risorsa creata dalla prima. Se la prima richiesta è
+        ancora in corso: `409 idempotency_in_progress`. Se la chiave è già
+        stata usata su un'altra operazione: `422 idempotency_key_reused`.
+        Senza header ogni richiesta crea una nuova risorsa.
+      schema: { type: string }
+      example: "chiamata-8f2a-prenota"
 
   schemas:
     AvailabilityFound:
+      title: "Disponibile (`available: true`)"
       type: object
       properties:
-        venueId: { type: string, format: uuid }
-        serviceDate: { type: string, format: date }
-        partySize: { type: integer }
-        available: { type: boolean, enum: [true] }
-        time: { type: string, description: "Ora locale del locale, HH:MM" }
-        startsAt: { type: string, format: date-time }
-        endsAt: { type: string, format: date-time }
-        turnTimeMinutes: { type: integer }
-        seats: { type: integer }
-        overflowsShift: { type: boolean }
+        venueId: { type: string, format: uuid, description: "ID del locale." }
+        serviceDate: { type: string, format: date, description: "Giorno di servizio, `YYYY-MM-DD`." }
+        partySize: { type: integer, description: "Numero di coperti richiesto." }
+        available: { type: boolean, enum: [true], description: "Disponibilità trovata." }
+        time: { type: string, description: "Orario trovato, `HH:MM` nel fuso del locale." }
+        startsAt: { type: string, format: date-time, description: "Inizio, ISO 8601 UTC." }
+        endsAt: { type: string, format: date-time, description: "Fine stimata, ISO 8601 UTC." }
+        turnTimeMinutes: { type: integer, description: "Durata stimata di occupazione del tavolo, in minuti." }
+        seats: { type: integer, description: "Capienza massima del tavolo o dell'unione di tavoli individuata." }
+        overflowsShift: { type: boolean, description: "`true` se la durata supera la fine del turno (sforamento)." }
         alternatives:
           type: array
+          description: Sempre vuoto quando `available` è `true`.
           items: { $ref: "#/components/schemas/AvailabilitySlot" }
       required: [venueId, serviceDate, partySize, available, time, startsAt, endsAt, seats, alternatives]
 
     AvailabilitySlot:
       type: object
       properties:
-        time: { type: string }
-        startsAt: { type: string, format: date-time }
-        endsAt: { type: string, format: date-time }
-        turnTimeMinutes: { type: integer }
-        seats: { type: integer }
-        overflowsShift: { type: boolean }
+        time: { type: string, description: "Orario, `HH:MM` nel fuso del locale." }
+        startsAt: { type: string, format: date-time, description: "Inizio, ISO 8601 UTC." }
+        endsAt: { type: string, format: date-time, description: "Fine stimata, ISO 8601 UTC." }
+        turnTimeMinutes: { type: integer, description: "Durata stimata, in minuti." }
+        seats: { type: integer, description: "Capienza massima del tavolo o dell'unione di tavoli." }
+        overflowsShift: { type: boolean, description: "`true` se la durata supera la fine del turno." }
 
     AvailabilityRefused:
+      title: "Non disponibile (`available: false`)"
       type: object
       properties:
-        venueId: { type: string, format: uuid }
-        serviceDate: { type: string, format: date }
-        partySize: { type: integer }
-        available: { type: boolean, enum: [false] }
+        venueId: { type: string, format: uuid, description: "ID del locale." }
+        serviceDate: { type: string, format: date, description: "Giorno di servizio, `YYYY-MM-DD`." }
+        partySize: { type: integer, description: "Numero di coperti richiesto." }
+        available: { type: boolean, enum: [false], description: "Nessuna disponibilità all'orario richiesto." }
         reason:
           type: string
           enum: [closed, no_shift, after_last_seating, no_turn_time_rule, no_table, pacing_full]
           description: >
-            closed=chiusura, no_shift=nessun turno a quell'ora,
-            after_last_seating=ultimo ingresso passato,
-            no_turn_time_rule=nessuna regola di durata,
-            no_table=nessun tavolo libero della capienza giusta,
-            pacing_full=tetto coperti della fascia pieno.
+            Motivo dell'indisponibilità. `closed`: locale chiuso nel giorno
+            richiesto. `no_shift`: nessun turno all'orario richiesto.
+            `after_last_seating`: orario successivo all'ultimo ingresso del
+            turno. `no_turn_time_rule`: nessuna regola di durata per quel
+            numero di coperti. `no_table`: nessun tavolo libero con capienza
+            compatibile. `pacing_full`: limite di coperti della fascia oraria
+            raggiunto.
         alternatives:
           type: array
+          description: Orari alternativi più vicini nello stesso turno. Può essere vuoto.
           items: { $ref: "#/components/schemas/AvailabilitySlot" }
       required: [venueId, serviceDate, partySize, available, reason, alternatives]
 
     GuestFound:
+      title: "Ospite trovato (`found: true`)"
       type: object
       properties:
-        found: { type: boolean, enum: [true] }
+        found: { type: boolean, enum: [true], description: "Ospite trovato." }
         guest:
           type: object
           properties:
-            id: { type: string, format: uuid }
-            phone: { type: string }
-            name: { type: [string, "null"] }
-            allergies: { type: [string, "null"] }
-            notes: { type: [string, "null"] }
-            visitCount: { type: integer }
-            noShowCount: { type: integer }
+            id: { type: string, format: uuid, description: "ID dell'ospite." }
+            phone: { type: string, description: "Numero in formato E.164." }
+            name: { type: [string, "null"], description: "Nome dell'ospite." }
+            allergies: { type: [string, "null"], description: "Allergie registrate (allergeni di legge)." }
+            notes: { type: [string, "null"], description: "Note sull'ospite." }
+            visitCount: { type: integer, description: "Numero di visite registrate." }
+            noShowCount: { type: integer, description: "Numero di mancate presentazioni." }
           required: [id, phone, name, allergies, notes, visitCount, noShowCount]
       required: [found, guest]
 
     GuestNotFound:
+      title: "Ospite non trovato (`found: false`)"
       type: object
       properties:
-        found: { type: boolean, enum: [false] }
-        phone: { type: string }
+        found: { type: boolean, enum: [false], description: "Nessun ospite con quel numero." }
+        phone: { type: string, description: "Numero cercato, normalizzato in E.164." }
       required: [found, phone]
 
     ReservationCreate:
       type: object
       properties:
-        venueId: { type: string, format: uuid }
-        serviceDate: { type: string, format: date }
-        time: { type: string, pattern: "^\\d{2}:\\d{2}$" }
-        partySize: { type: integer, minimum: 1 }
+        venueId: { type: string, format: uuid, description: "ID del locale." }
+        serviceDate: { type: string, format: date, description: "Giorno di servizio, `YYYY-MM-DD`." }
+        time: { type: string, pattern: "^\\d{2}:\\d{2}$", description: "Orario, `HH:MM` nel fuso del locale." }
+        partySize: { type: integer, minimum: 1, description: "Numero di coperti. Intero maggiore di zero." }
         phone:
           type: string
-          description: Qualunque formato; assente = nessun ospite associato.
-        guestName: { type: string }
-        notes: { type: [string, "null"] }
+          description: >
+            Numero dell'ospite in qualsiasi formato, normalizzato in E.164.
+            Facoltativo: se assente, la prenotazione non ha ospite associato.
+        guestName:
+          type: string
+          description: Nome usato solo se l'ospite con `phone` non esiste e viene creato.
+        notes: { type: [string, "null"], description: "Note della prenotazione." }
       required: [venueId, serviceDate, time, partySize]
 
     ReservationPatch:
       type: object
-      description: Almeno un campo. Il tavolo non e' modificabile da qui.
+      description: >
+        Almeno uno tra `serviceDate`, `time`, `partySize`, `notes`. Gli altri
+        campi sono ignorati.
       properties:
-        serviceDate: { type: string, format: date }
-        time: { type: string, pattern: "^\\d{2}:\\d{2}$" }
-        partySize: { type: integer, minimum: 1 }
-        notes: { type: [string, "null"] }
+        serviceDate: { type: string, format: date, description: "Nuovo giorno di servizio, `YYYY-MM-DD`." }
+        time: { type: string, pattern: "^\\d{2}:\\d{2}$", description: "Nuovo orario, `HH:MM` nel fuso del locale." }
+        partySize: { type: integer, minimum: 1, description: "Nuovo numero di coperti. Intero maggiore di zero." }
+        notes: { type: [string, "null"], description: "Nuove note. `null` le cancella." }
       minProperties: 1
 
     Reservation:
       type: object
       properties:
-        id: { type: string, format: uuid }
-        venueId: { type: string, format: uuid }
-        serviceDate: { type: string, format: date }
-        time: { type: string }
-        startsAt: { type: string, format: date-time }
-        endsAt: { type: string, format: date-time }
-        partySize: { type: integer }
+        id: { type: string, format: uuid, description: "ID della prenotazione." }
+        venueId: { type: string, format: uuid, description: "ID del locale." }
+        serviceDate: { type: string, format: date, description: "Giorno di servizio, `YYYY-MM-DD`." }
+        time: { type: string, description: "Orario, `HH:MM` nel fuso del locale." }
+        startsAt: { type: string, format: date-time, description: "Inizio, ISO 8601 UTC." }
+        endsAt: { type: string, format: date-time, description: "Fine stimata, ISO 8601 UTC." }
+        partySize: { type: integer, description: "Numero di coperti." }
         status:
           type: string
-          description: Stato della prenotazione (es. confirmed, cancelled).
+          enum: [created, confirmed, arrived, seated, released, completed, no_show, cancelled]
+          description: Stato della prenotazione.
         tableAssigned:
           type: boolean
-          description: Un tavolo o un'unione di tavoli e' assegnato. Quale, non si dice.
+          description: "`true` se è assegnato un tavolo o un'unione di tavoli. Il tavolo non viene esposto."
         needsAttention:
           type: boolean
-          description: "\"Da sistemare\": vale, ma qualcuno in sala deve guardarla."
-        notes: { type: [string, "null"] }
+          description: >
+            `true` se la prenotazione è "da sistemare": valida, ma senza un
+            tavolo compatibile dopo una modifica. Richiede un intervento in sala.
+        notes: { type: [string, "null"], description: "Note della prenotazione." }
         guest:
           type: [object, "null"]
+          description: Scheda di servizio dell'ospite, `null` se la prenotazione non ha ospite.
           properties:
-            name: { type: [string, "null"] }
-            allergies: { type: [string, "null"] }
+            name: { type: [string, "null"], description: "Nome dell'ospite." }
+            allergies: { type: [string, "null"], description: "Allergie registrate." }
       required: [id, venueId, serviceDate, time, startsAt, endsAt, partySize, status, tableAssigned, needsAttention, notes, guest]
 
     ReservationEnvelope:
@@ -457,30 +606,30 @@ components:
     WaitlistCreate:
       type: object
       properties:
-        venueId: { type: string, format: uuid }
-        serviceDate: { type: string, format: date }
-        partySize: { type: integer, minimum: 1 }
-        earliestTime: { type: string, pattern: "^\\d{2}:\\d{2}$" }
-        latestTime: { type: string, pattern: "^\\d{2}:\\d{2}$" }
-        phone: { type: string }
-        guestName: { type: string }
+        venueId: { type: string, format: uuid, description: "ID del locale." }
+        serviceDate: { type: string, format: date, description: "Giorno di servizio, `YYYY-MM-DD`." }
+        partySize: { type: integer, minimum: 1, description: "Numero di coperti. Intero maggiore di zero." }
+        earliestTime: { type: string, pattern: "^\\d{2}:\\d{2}$", description: "Inizio della fascia accettata, `HH:MM` nel fuso del locale." }
+        latestTime: { type: string, pattern: "^\\d{2}:\\d{2}$", description: "Fine della fascia accettata, `HH:MM` nel fuso del locale." }
+        phone: { type: string, description: "Numero dell'ospite in qualsiasi formato, normalizzato in E.164." }
+        guestName: { type: string, description: "Nome usato solo se l'ospite con `phone` non esiste e viene creato." }
       required: [venueId, serviceDate, partySize, earliestTime, latestTime, phone]
 
     WaitlistEntry:
       type: object
       properties:
-        id: { type: string, format: uuid }
-        venueId: { type: string, format: uuid }
-        serviceDate: { type: string, format: date }
-        partySize: { type: integer }
-        earliestTime: { type: string }
-        latestTime: { type: string }
-        status: { type: string, description: "Es. waiting." }
+        id: { type: string, format: uuid, description: "ID dell'ingresso in coda clienti." }
+        venueId: { type: string, format: uuid, description: "ID del locale." }
+        serviceDate: { type: string, format: date, description: "Giorno di servizio, `YYYY-MM-DD`." }
+        partySize: { type: integer, description: "Numero di coperti." }
+        earliestTime: { type: string, description: "Inizio della fascia, `HH:MM`." }
+        latestTime: { type: string, description: "Fine della fascia, `HH:MM`." }
+        status: { type: string, description: "Stato dell'ingresso. `waiting` alla creazione." }
         guest:
           type: [object, "null"]
           properties:
-            name: { type: [string, "null"] }
-            phone: { type: string }
+            name: { type: [string, "null"], description: "Nome dell'ospite." }
+            phone: { type: string, description: "Numero in formato E.164." }
       required: [id, venueId, serviceDate, partySize, earliestTime, latestTime, status, guest]
 
     WaitlistEnvelope:
@@ -497,11 +646,13 @@ components:
           properties:
             code:
               type: string
+              description: Codice macchina dell'errore. Lo status HTTP dipende solo da `code`.
               enum:
                 - invalid_request
                 - unauthenticated
                 - api_key_invalid
                 - api_key_revoked
+                - forbidden
                 - not_found
                 - no_availability
                 - conflict
@@ -509,58 +660,84 @@ components:
                 - idempotency_key_reused
                 - rate_limited
                 - internal_error
-            message: { type: string }
-            details: { type: object, additionalProperties: true }
+            message: { type: string, description: "Descrizione in italiano. Il testo può cambiare." }
+            details: { type: object, additionalProperties: true, description: "Dati aggiuntivi. Sempre presente, anche vuoto." }
           required: [code, message, details]
       required: [error]
 
   responses:
     InvalidRequest:
-      description: Parametri mancanti o malformati (400).
+      description: "`invalid_request`: parametri mancanti o malformati. `details.fields` elenca i campi da correggere."
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: { code: "invalid_request", message: "servono venueId, serviceDate, time e partySize", details: { fields: ["venueId", "serviceDate", "time", "partySize"] } } }
+    InvalidPhone:
+      description: "`invalid_request`: numero di telefono non normalizzabile. `details.field` vale `phone`."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "invalid_request", message: "il numero di telefono non e' valido", details: { field: "phone" } } }
     Unauthenticated:
-      description: Nessuna chiave, chiave sconosciuta o revocata (401).
+      description: "`unauthenticated`, `api_key_invalid` o `api_key_revoked`: chiave assente, sconosciuta o revocata."
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           examples:
-            senzaChiave: { value: { error: { code: "unauthenticated", message: "serve una chiave API", details: {} } } }
-            chiaveInvalida: { value: { error: { code: "api_key_invalid", message: "chiave API non valida", details: {} } } }
-            chiaveRevocata: { value: { error: { code: "api_key_revoked", message: "chiave API revocata", details: {} } } }
+            senzaChiave: { summary: Chiave assente, value: { error: { code: "unauthenticated", message: "serve una chiave API", details: {} } } }
+            chiaveInvalida: { summary: Chiave sconosciuta, value: { error: { code: "api_key_invalid", message: "chiave API non valida", details: {} } } }
+            chiaveRevocata: { summary: Chiave revocata, value: { error: { code: "api_key_revoked", message: "chiave API revocata", details: {} } } }
+    Forbidden:
+      description: "`forbidden`: il membro associato alla chiave non ha il permesso per l'operazione."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "forbidden", message: "serve il permesso di modificare le prenotazioni", details: {} } }
     NotFound:
-      description: Locale, prenotazione o parcheggiato inesistenti o non accessibili (404).
+      description: "`not_found`: locale, prenotazione o ingresso in coda clienti inesistente o non accessibile alla chiave."
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: { code: "not_found", message: "prenotazione inesistente o non accessibile", details: {} } }
-    NoAvailabilityOrIdempotencyInProgress:
+    CreateConflict:
       description: >
-        409 — o non c'e' posto (`no_availability`, con `reason` e
-        `alternatives`), o e' un conflitto sulla riga (`conflict`), o la
-        stessa `Idempotency-Key` e' ancora in corso (`idempotency_in_progress`).
+        `no_availability`: nessuna disponibilità, con `details.reason` e
+        `details.alternatives`. `conflict`: conflitto con una modifica
+        concorrente. `idempotency_in_progress`: una richiesta con la stessa
+        `Idempotency-Key` è ancora in corso.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           examples:
-            noAvailability: { value: { error: { code: "no_availability", message: "nessun tavolo disponibile", details: { reason: "no_table", alternatives: [] } } } }
-            inCorso: { value: { error: { code: "idempotency_in_progress", message: "una richiesta con questa chiave e' ancora in corso: ritenta fra poco", details: {} } } }
-    Conflict:
-      description: "La prenotazione e' cambiata o e' in uso: rileggi e ritenta (409)."
+            noAvailability: { summary: Nessuna disponibilità, value: { error: { code: "no_availability", message: "nessun tavolo disponibile", details: { reason: "no_table", alternatives: [] } } } }
+            inCorso: { summary: Richiesta idempotente in corso, value: { error: { code: "idempotency_in_progress", message: "una richiesta con questa chiave e' ancora in corso: ritenta fra poco", details: {} } } }
+    IdempotencyInProgress:
+      description: "`idempotency_in_progress`: una richiesta con la stessa `Idempotency-Key` è ancora in corso."
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "idempotency_in_progress", message: "una richiesta con questa chiave e' ancora in corso: ritenta fra poco", details: {} } }
+    Conflict:
+      description: "`conflict`: la prenotazione è stata modificata da un'altra richiesta o è in uso. Rileggere la prenotazione prima di ripetere la richiesta."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "conflict", message: "qualcun altro ha appena cambiato questa prenotazione: guarda com'e' adesso e riprova", details: {} } }
     IdempotencyKeyReused:
-      description: Stessa chiave di idempotenza usata su un'altra operazione (422).
+      description: "`idempotency_key_reused`: la `Idempotency-Key` è già stata usata per un'altra operazione. `details.operation` indica quale."
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: { code: "idempotency_key_reused", message: "questa chiave di idempotenza e' gia' stata usata per un'altra operazione", details: { operation: "POST /api/v1/reservations" } } }
     RateLimited:
-      description: Troppe richieste al minuto per questa chiave (429).
+      description: "`rate_limited`: superato il limite di richieste al minuto della chiave."
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
           example: { error: { code: "rate_limited", message: "troppe richieste per questa chiave", details: {} } }
+    InternalError:
+      description: "`internal_error`: errore del server. Il dettaglio tecnico non viene esposto."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { error: { code: "internal_error", message: "errore imprevisto: riprova fra poco", details: {} } }

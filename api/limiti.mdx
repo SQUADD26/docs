@@ -1,30 +1,38 @@
 ---
-title: "Limiti"
-description: "Richieste al minuto per chiave e cosa fare quando si superano."
+title: "Limiti di richiesta"
+sidebarTitle: "Limiti di richiesta"
+description: "Limite di richieste al minuto per chiave API e gestione della risposta 429."
 icon: "gauge"
 ---
 
 ## Richieste al minuto
 
-Ogni chiave API ha un tetto di **richieste al minuto**, fissato quando la chiave viene creata. Il tetto vale per chiave, non per organizzazione: due chiavi hanno due tetti separati.
+| Ambito | Limite |
+| --- | --- |
+| Chiave API | Numero massimo di richieste al minuto, fissato alla creazione della chiave |
 
-Oltre il tetto l'API risponde:
+Il limite si applica per chiave, non per organizzazione: due chiavi della stessa organizzazione hanno limiti indipendenti.
+
+Oltre il limite, l'API risponde `429`:
 
 ```json
-HTTP 429
 { "error": { "code": "rate_limited", "message": "troppe richieste per questa chiave", "details": {} } }
 ```
 
-L'API non manda header `Retry-After` ne' `X-RateLimit-*`. Quando ricevi `429`, aspetta qualche secondo e ritenta, allungando l'attesa a ogni nuovo `429`.
+La risposta non include gli header `Retry-After` né `X-RateLimit-*`. Ripeti la richiesta con backoff esponenziale: attesa iniziale di qualche secondo, raddoppiata a ogni `429` successivo.
 
 <Tip>
-  Se ritenti una creazione dopo un `429`, usa la stessa [`Idempotency-Key`](/api/idempotenza): cosi' non rischi doppioni.
+  Per ripetere una creazione dopo un `429`, usa la stessa [`Idempotency-Key`](/api/idempotenza).
 </Tip>
 
-## Validazione dei campi
+## Vincoli sui campi
 
-- `time`, `earliestTime`, `latestTime`: formato `HH:MM`.
-- `serviceDate`: formato `YYYY-MM-DD`.
-- `partySize`: intero, almeno 1.
-- `phone`: qualunque formato; il server lo normalizza in E.164 (`+39...`).
-- `PATCH /reservations/{id}`: almeno un campo tra `serviceDate`, `time`, `partySize`, `notes`.
+| Campo | Vincolo |
+| --- | --- |
+| `serviceDate` | `YYYY-MM-DD` |
+| `time`, `earliestTime`, `latestTime` | `HH:MM` |
+| `partySize` | Intero maggiore di zero |
+| `phone` | Qualsiasi formato normalizzabile in E.164 |
+| Body di `PATCH /reservations/{id}` | Almeno uno tra `serviceDate`, `time`, `partySize`, `notes` |
+
+Un campo obbligatorio mancante, un `partySize` non valido, un `phone` non normalizzabile o un body `PATCH` senza campi modificabili restituiscono `400 invalid_request`.
