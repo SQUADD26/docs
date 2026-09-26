@@ -502,7 +502,6 @@ components:
                 - unauthenticated
                 - api_key_invalid
                 - api_key_revoked
-                - forbidden
                 - not_found
                 - no_availability
                 - conflict

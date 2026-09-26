@@ -26,11 +26,10 @@ Lo status HTTP dipende solo da `code`.
 
 | Status | `code` | Significato | Cosa fare |
 | --- | --- | --- | --- |
-| `400` | `invalid_request` | Parametri mancanti o malformati. `details.fields` elenca quali | Correggi la richiesta |
+| `400` | `invalid_request` | Parametri mancanti o malformati. `details.fields` elenca quali (eccezione: il numero di telefono non valido su `GET /guests/lookup`, e indirettamente su `POST /reservations` e `POST /waitlist`, usa `details.field`, singolare) | Correggi la richiesta |
 | `401` | `unauthenticated` | Nessuna chiave | Aggiungi `Authorization: Bearer gsk_...` |
 | `401` | `api_key_invalid` | Chiave sconosciuta | Controlla la chiave |
 | `401` | `api_key_revoked` | Chiave revocata | Crea una chiave nuova |
-| `403` | `forbidden` | Il membro della chiave non ha il permesso | Rivedi il ruolo del membro |
 | `404` | `not_found` | Locale, prenotazione o ospite in coda inesistenti o non accessibili | Controlla gli id |
 | `409` | `no_availability` | Non c'e' posto. `details.reason` e `details.alternatives` come in `/availability` | Proponi un'alternativa |
 | `409` | `conflict` | La prenotazione e' cambiata o e' in uso | Rileggi e ritenta |
