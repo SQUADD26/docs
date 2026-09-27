@@ -38,7 +38,7 @@ Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/
 | `rateLimit.remaining` | integer | sì | Richieste rimaste in quella finestra |
 | `rateLimit.resetAt` | string (date-time) | sì | Quando quella finestra riparte |
 | `livemode` | boolean | sì | Falso per le chiavi dell'organizzazione di prova (gsk_test_) |
-| `venues` | array | sì |  |
+| `venues` | array | sì | Il locale della chiave, come unico elemento dell'elenco |
 | `venues[].id` | string (uuid) | sì |  |
 | `venues[].name` | string | sì |  |
 | `venues[].timezone` | string | sì | Fuso orario IANA |
@@ -77,11 +77,11 @@ Restituisce la specifica OpenAPI 3.1 di questa API. Non richiede autenticazione.
 | --- | --- |
 | `200` | OpenAPI 3.1 |
 
-## Elenca i locali accessibili alla chiave
+## Restituisce il locale della chiave
 
 `GET /venues`
 
-Scope: `venues:read`
+Scope: `venues:read`. Una chiave vale in un locale solo: `data` contiene sempre al più un elemento, quello del locale della chiave.
 
 ### Parametri
 
@@ -1905,7 +1905,7 @@ Scope: `webhooks:write`. Rimette in coda una consegna conclusa, con la stessa ch
 
 `GET /webhook-endpoints`
 
-Scope: `webhooks:read`. Le destinazioni dei locali accessibili alla chiave.
+Scope: `webhooks:read`. Le destinazioni del locale della chiave.
 
 ### Parametri
 
@@ -2025,7 +2025,7 @@ Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta v
 
 `POST /webhook-secret/rotate`
 
-Scope: `webhooks:write`, con una chiave non limitata a certi locali. Genera un nuovo segreto per le consegne all'indirizzo scritto nell'azione; il precedente resta valido per `overlapMinutes` minuti.
+Scope: `webhooks:write`, e solo se il locale della chiave è l'unico locale attivo dell'organizzazione. Genera un nuovo segreto per le consegne all'indirizzo scritto nell'azione; il precedente resta valido per `overlapMinutes` minuti.
 
 ### Parametri
 

@@ -26,7 +26,7 @@ tags:
 - name: Meta
   description: Identità della chiave, stato del servizio e specifica OpenAPI
 - name: Locali
-  description: Locali accessibili alla chiave e relativo `venueId`
+  description: Il locale della chiave e relativo `venueId`
 - name: Configurazione del locale
   description: Turni, chiusure, sale, tavoli, piante, regole e stato della sala
 - name: Disponibilità
@@ -129,11 +129,12 @@ paths:
     get:
       tags:
       - Locali
-      summary: Elenca i locali accessibili alla chiave
+      summary: Restituisce il locale della chiave
       security:
       - apiKey: []
       x-required-scope: venues:read
-      description: 'Scope: `venues:read`'
+      description: 'Scope: `venues:read`. Una chiave vale in un locale solo: `data` contiene sempre
+        al più un elemento, quello del locale della chiave.'
       operationId: listVenues
       parameters:
       - name: limit
@@ -3829,7 +3830,7 @@ paths:
       security:
       - apiKey: []
       x-required-scope: webhooks:read
-      description: 'Scope: `webhooks:read`. Le destinazioni dei locali accessibili alla chiave.'
+      description: 'Scope: `webhooks:read`. Le destinazioni del locale della chiave.'
       operationId: listWebhookEndpoints
       parameters:
       - name: limit
@@ -4121,9 +4122,9 @@ paths:
       security:
       - apiKey: []
       x-required-scope: webhooks:write
-      description: 'Scope: `webhooks:write`, con una chiave non limitata a certi locali. Genera un nuovo
-        segreto per le consegne all''indirizzo scritto nell''azione; il precedente resta valido per `overlapMinutes`
-        minuti.'
+      description: 'Scope: `webhooks:write`, e solo se il locale della chiave è l''unico locale attivo
+        dell''organizzazione. Genera un nuovo segreto per le consegne all''indirizzo scritto nell''azione;
+        il precedente resta valido per `overlapMinutes` minuti.'
       operationId: rotateOrganizationWebhookSecret
       parameters:
       - name: Idempotency-Key
@@ -4699,6 +4700,7 @@ components:
           description: Falso per le chiavi dell'organizzazione di prova (gsk_test_)
         venues:
           type: array
+          description: Il locale della chiave, come unico elemento dell'elenco
           items:
             $ref: '#/components/schemas/Venue'
       required:

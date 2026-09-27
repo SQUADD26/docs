@@ -11,7 +11,7 @@ curl "https://app.gestionesala.com/api/v1/me" \
   -H "Authorization: Bearer $GS_KEY"
 ```
 
-`GET /me` restituisce l'organizzazione, gli scope e i locali della chiave che chiama.
+`GET /me` restituisce l'organizzazione, gli scope e il locale della chiave che chiama.
 
 ## Header
 
@@ -34,7 +34,7 @@ Il prefisso identifica il tipo di chiave e l'organizzazione a cui appartiene.
 | `gspk_` | Chiave pubblica del widget | Pagina web del locale. Vedi [Chiave pubblica del widget](#chiave-pubblica-del-widget) |
 | `gspk_test_` | Chiave pubblica di prova | Widget collegato all'organizzazione di prova |
 
-Una chiave identifica un'organizzazione e un principale con un ruolo proprio. Ogni richiesta vede solo i dati dell'organizzazione della chiave e dei locali assegnati alla chiave: una risorsa fuori da questo perimetro restituisce `404 not_found`, non `403`.
+Una chiave API di gestionesala vale in un locale solo: alla creazione si sceglie il locale, e da quel momento la chiave non lo cambia. Un'organizzazione con più locali usa una chiave per ognuno. Ogni richiesta vede solo i dati del locale della chiave: una risorsa di un altro locale, anche della stessa organizzazione, restituisce `404 not_found`, non `403`.
 
 ## Scope
 
@@ -57,9 +57,7 @@ Ogni endpoint richiede uno scope, indicato nella sua pagina come `Scope: <nome>`
 | `webhooks:read` | Destinazioni e consegne dei webhook |
 | `webhooks:write` | Rispedizione delle consegne, evento di prova, rotazione del segreto |
 
-La chiave API di gestionesala creata da **Impostazioni → Collegamenti → Chiavi API** ha gli scope `reservations:read`, `reservations:write`, `waitlist:read`, `waitlist:write`, `guests:read`, `guests:write`, `venues:read`, `floor:read`.
-
-Una chiave può essere limitata a un sottoinsieme dei locali dell'organizzazione. I locali esclusi non compaiono negli elenchi e restituiscono `404`.
+Una chiave creata da **Impostazioni → Collegamenti → Chiavi API** senza limitarla ha tutti gli scope. Con **Limita chiave** attivo, ha solo gli scope scelti. Chi genera la chiave deve avere, sul locale scelto, il permesso di gestire i collegamenti e ogni permesso che gli scope selezionati danno: una chiave non può fare più di chi la genera.
 
 ## Chiave pubblica del widget
 
@@ -85,10 +83,13 @@ L'organizzazione di prova si crea come un'organizzazione normale, indicando che 
 
 <Steps>
   <Step title="Apri Collegamenti">
-    Nell'app apri **Impostazioni → Collegamenti → Chiavi API**. Serve il permesso sui collegamenti in ogni locale della chiave.
+    Nell'app apri **Impostazioni → Collegamenti → Chiavi API** del locale per cui vuoi la chiave. Serve il permesso di gestire i collegamenti in quel locale.
   </Step>
   <Step title="Assegna un nome">
     Alla creazione il nome è già riempito con tre parole casuali riconoscibili; puoi cambiarlo con uno che identifichi il sistema che userà la chiave, ad esempio `Sito prenotazioni`. Il nome compare in `sourceDetail` delle prenotazioni create dalla chiave, se la richiesta non indica un `channel`.
+  </Step>
+  <Step title="Scegli gli scope (opzionale)">
+    Senza **Limita chiave**, la chiave ha tutti gli scope. Con **Limita chiave** attivo, scegli solo quelli che le servono: la chiave non potrà fare più di quanto quegli scope permettono.
   </Step>
   <Step title="Crea la chiave">
     Premi **Crea una chiave**. La chiave viene mostrata una sola volta.
@@ -109,7 +110,7 @@ Nella stessa sezione, apri il menu della chiave e scegli **Revoca**. La revoca h
 | --- | --- | --- |
 | `401` | `unauthenticated` | Header `Authorization` assente o senza schema `Bearer` |
 | `401` | `api_key_invalid` | Chiave sconosciuta o malformata |
-| `401` | `api_key_revoked` | Chiave revocata |
+| `401` | `api_key_revoked` | Chiave revocata, o del locale disattivato |
 | `403` | `insufficient_scope` | La chiave non ha lo scope dell'endpoint. `details.requiredScope` indica quale |
 | `403` | `forbidden` | Chiave pubblica fuori dal suo perimetro. `details.reason` è `publishable_key` o `origin_not_allowed` |
 
