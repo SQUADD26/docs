@@ -68,7 +68,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden
+          description: forbidden, organization_suspended
           content:
             application/json:
               schema:
@@ -192,7 +192,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -239,7 +239,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -328,7 +328,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -417,7 +417,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -506,7 +506,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -595,7 +595,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -684,7 +684,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -743,7 +743,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -797,7 +797,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -886,7 +886,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -975,7 +975,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1058,7 +1058,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1157,7 +1157,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1255,7 +1255,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1378,7 +1378,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1552,7 +1552,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1686,7 +1686,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1770,7 +1770,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1898,7 +1898,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -1958,7 +1958,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2100,7 +2100,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2200,7 +2200,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2265,7 +2265,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2353,7 +2353,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2413,7 +2413,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2491,7 +2491,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2610,7 +2610,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2729,7 +2729,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2838,7 +2838,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -2885,7 +2885,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3019,7 +3019,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3069,7 +3069,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3146,7 +3146,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3240,7 +3240,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3356,7 +3356,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3421,7 +3421,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3484,7 +3484,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3625,7 +3625,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3728,7 +3728,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3793,7 +3793,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3887,7 +3887,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -3993,7 +3993,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -4085,7 +4085,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -4180,7 +4180,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -4337,7 +4337,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -4495,7 +4495,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:
@@ -4554,7 +4554,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403':
-          description: forbidden, insufficient_scope
+          description: forbidden, organization_suspended, insufficient_scope
           content:
             application/json:
               schema:

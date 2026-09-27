@@ -113,6 +113,7 @@ Nella stessa sezione, apri il menu della chiave e scegli **Revoca**. La revoca h
 | `401` | `api_key_revoked` | Chiave revocata, o del locale disattivato |
 | `403` | `insufficient_scope` | La chiave non ha lo scope dell'endpoint. `details.requiredScope` indica quale |
 | `403` | `forbidden` | Chiave pubblica fuori dal suo perimetro. `details.reason` è `publishable_key` o `origin_not_allowed` |
+| `403` | `organization_suspended` | Organizzazione sospesa per canone non pagato, 30 giorni dopo il blocco. Vale per ogni chiave dell'organizzazione |
 
 ```json
 {

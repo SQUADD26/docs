@@ -19,7 +19,7 @@ Specifica sorgente: [`openapi.yaml`](https://raw.githubusercontent.com/SQUADD26/
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden |
+| `403` | forbidden, organization_suspended |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -98,7 +98,7 @@ Scope: `venues:read`. Una chiave vale in un locale solo: `data` contiene sempre 
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -131,7 +131,7 @@ Scope: `venues:read`
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -168,7 +168,7 @@ Scope: `venues:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -208,7 +208,7 @@ Scope: `venues:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -246,7 +246,7 @@ Scope: `floor:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -286,7 +286,7 @@ Scope: `floor:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -329,7 +329,7 @@ Scope: `floor:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -364,7 +364,7 @@ Scope: `floor:read`
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -419,7 +419,7 @@ Scope: `floor:read` e `reservations:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -485,7 +485,7 @@ Scope: `venues:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -525,7 +525,7 @@ Scope: `venues:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -563,7 +563,7 @@ Scope: `guests:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -598,7 +598,7 @@ Scope: `reservations:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -641,7 +641,7 @@ Scope: `reservations:read`. Ogni orario, a passi di 15 minuti dall'apertura del 
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -684,7 +684,7 @@ Scope: `reservations:read`. Intervallo di al massimo 62 giorni, estremi inclusi.
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -733,7 +733,7 @@ Scope: `reservations:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -800,7 +800,7 @@ Scope: `reservations:write`
 | `201` | Creata (dalla chiave pubblica del widget: WidgetReservation) |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | no_availability, conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
@@ -832,7 +832,7 @@ Scope: `reservations:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -896,7 +896,7 @@ Scope: `reservations:write`. Conferma, sposta o cambia stato, tavolo o ospite. G
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | no_availability, conflict |
 | `429` | rate_limited |
@@ -944,7 +944,7 @@ Scope: `reservations:write`. Porta la prenotazione allo stato `cancelled`. Se è
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | conflict |
 | `429` | rate_limited |
@@ -1001,7 +1001,7 @@ Scope: `waitlist:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -1055,7 +1055,7 @@ Scope: `waitlist:write`
 | `201` | Creata |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | idempotency_in_progress |
 | `422` | idempotency_key_reused |
@@ -1097,7 +1097,7 @@ Scope: `waitlist:read`
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1148,7 +1148,7 @@ Scope: `waitlist:write`. Modifica coperti o fascia oraria. Una voce già richiam
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | conflict |
 | `429` | rate_limited |
@@ -1189,7 +1189,7 @@ Scope: `waitlist:write`. Porta la voce allo stato `cancelled` ed emette l'evento
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | conflict |
 | `429` | rate_limited |
@@ -1232,7 +1232,7 @@ Scope: `waitlist:write` e `reservations:write`. La prenotazione ha lo stesso osp
 | `200` | Già convertita |
 | `201` | Convertita |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | no_availability, conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
@@ -1288,7 +1288,7 @@ Scope: `guests:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -1350,7 +1350,7 @@ Scope: `guests:write`. Crea l'ospite o aggiorna quello con lo stesso telefono. R
 | `201` | Creato |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `409` | conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
 | `429` | rate_limited |
@@ -1399,7 +1399,7 @@ Scope: `guests:read`
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -1439,7 +1439,7 @@ Scope: `guests:read`
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1504,7 +1504,7 @@ Scope: `guests:write`. Aggiorna la scheda, i consensi e i tag di campagna. null 
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | conflict |
 | `429` | rate_limited |
@@ -1552,7 +1552,7 @@ Scope: `guests:write`. Sposta l'ospite nel Cestino; dopo 30 giorni viene elimina
 | --- | --- |
 | `204` | Nel Cestino |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1581,7 +1581,7 @@ Scope: `guests:write`. Sostituisce i tag dell'ospite; i nomi vengono dal catalog
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1628,7 +1628,7 @@ Scope: `guests:read`. Nome, allergie e tag di servizio dell'ospite.
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1666,7 +1666,7 @@ Scope: `events:read`. Ogni evento ha la stessa busta dei webhook.
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -1704,7 +1704,7 @@ Scope: `reports:read`. Una riga per giorno del periodo.
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1747,7 +1747,7 @@ Scope: `reports:read`. Include il confronto con lo stesso giorno della settimana
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1797,7 +1797,7 @@ Scope: `reports:read` e `reservations:read`. Risposta in streaming: CSV (RFC 418
 | `200` | Le prenotazioni, una per riga |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -1831,7 +1831,7 @@ Scope: `webhooks:read`. Le consegne con `status=discarded` formano la coda di sc
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -1875,7 +1875,7 @@ Scope: `webhooks:write`. Rimette in coda una consegna conclusa, con la stessa ch
 | `200` | La stessa Idempotency-Key: la consegna di allora |
 | `201` | Di nuovo in coda |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
@@ -1922,7 +1922,7 @@ Scope: `webhooks:read`. Le destinazioni del locale della chiave.
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `429` | rate_limited |
 
 ### Campi della risposta
@@ -1959,7 +1959,7 @@ Scope: `webhooks:write`. Invia subito un evento di prova firmato, fuori dalla co
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
@@ -2006,7 +2006,7 @@ Scope: `webhooks:write`. Genera un nuovo segreto di firma; il precedente resta v
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `409` | conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
@@ -2046,7 +2046,7 @@ Scope: `webhooks:write`, e solo se il locale della chiave è l'unico locale atti
 | `200` | OK |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `409` | conflict, idempotency_in_progress |
 | `422` | idempotency_key_reused |
 | `429` | rate_limited |
@@ -2096,7 +2096,7 @@ Scope: `imports:write`. Fino a 1000 righe per richiesta. Crea o aggiorna ogni os
 | `201` | Import eseguito: ospiti creati o aggiornati, righe scartate col motivo |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `409` | idempotency_in_progress |
 | `422` | idempotency_key_reused |
 | `429` | rate_limited |
@@ -2158,7 +2158,7 @@ Scope: `imports:write`. Fino a 1000 righe per richiesta, passate e future. Origi
 | `201` | Import eseguito: prenotazioni create, righe scartate col motivo |
 | `400` | invalid_request |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `409` | idempotency_in_progress |
 | `422` | idempotency_key_reused |
 | `429` | rate_limited |
@@ -2201,7 +2201,7 @@ Scope: `imports:write`. Restituisce il resoconto di un import.
 | --- | --- |
 | `200` | OK |
 | `401` | unauthenticated, api_key_invalid, api_key_revoked |
-| `403` | forbidden, insufficient_scope |
+| `403` | forbidden, organization_suspended, insufficient_scope |
 | `404` | not_found |
 | `429` | rate_limited |
 
