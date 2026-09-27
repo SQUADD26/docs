@@ -49,7 +49,7 @@ Ogni endpoint ha una pagina con parametri, risposte e playground nella barra lat
 
 ## Comportamento generale
 
-- **Permessi.** Ogni endpoint richiede uno scope; la chiave vede solo i locali a cui è assegnata. Vedi [Autenticazione](/api/autenticazione).
+- **Permessi.** Ogni endpoint richiede uno scope; la chiave vede solo il locale a cui è assegnata. Vedi [Autenticazione](/api/autenticazione).
 - **Esiti negativi con `200`.** `GET /availability` senza disponibilità risponde `200` con `available: false`, `reason` e `alternatives`. `GET /guests/lookup` senza corrispondenza risponde `200` con `found: false`.
 - **Elenchi.** Gli elenchi restituiscono `{ "data", "nextCursor" }`. Vedi [Paginazione](/api/paginazione).
 - **Annullamento non distruttivo.** `DELETE /reservations/{id}` imposta `status: "cancelled"`. La prenotazione non viene eliminata.

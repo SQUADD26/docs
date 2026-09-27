@@ -35,7 +35,7 @@ Tutti gli errori, su tutti gli endpoint, hanno questo formato:
 | `400` | `invalid_request` | Parametri mancanti o malformati. `details.fields` elenca i campi. Per un numero di telefono non valido `details.field` vale `phone` | Correggere la richiesta |
 | `401` | `unauthenticated` | Header `Authorization` assente | Inviare `Authorization: Bearer gsk_...` |
 | `401` | `api_key_invalid` | Chiave sconosciuta o malformata | Verificare la chiave |
-| `401` | `api_key_revoked` | Chiave revocata | Non ripetere la richiesta. Creare una nuova chiave |
+| `401` | `api_key_revoked` | Chiave revocata, o del locale disattivato | Non ripetere la richiesta. Creare una nuova chiave |
 | `403` | `forbidden` | Operazione non consentita alla chiave. Per la chiave pubblica `details.reason` vale `publishable_key` o `origin_not_allowed` | Verificare il tipo di chiave e i siti ammessi |
 | `403` | `insufficient_scope` | La chiave non ha lo scope dell'endpoint. `details.requiredScope` indica quale | Usare una chiave con quello scope |
 | `404` | `not_found` | Locale, prenotazione o ingresso in coda clienti inesistente o non visibile alla chiave | Verificare gli ID |
