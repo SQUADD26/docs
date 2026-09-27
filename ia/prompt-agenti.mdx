@@ -33,6 +33,7 @@ Leggi queste fonti prima di scrivere codice. Non usare endpoint, campi o codici 
    - 409 `conflict`: rileggi la prenotazione e ripeti.
    - 401 `api_key_revoked`: non ripetere, segnala.
    - 403 `forbidden`: non ripetere, segnala il permesso mancante.
+   - 403 `organization_suspended`: il servizio non è disponibile; non ripetere, segnala.
    - 429 `rate_limited`: nessun header Retry-After; ripeti con backoff esponenziale.
 5. L'API non accetta e non restituisce il tavolo. `tableAssigned` indica se un tavolo è assegnato. `needsAttention: true` indica una prenotazione valida che richiede un intervento in sala.
 6. Per modificare usa PATCH /reservations/{id} con almeno uno tra `serviceDate`, `time`, `partySize`, `notes`. Per annullare usa DELETE /reservations/{id}: imposta `status` a `cancelled`.
